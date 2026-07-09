@@ -59,3 +59,9 @@ This skill is self-improving. Each meaningful improvement bumps the version:
 ## License
 
 MIT
+
+## Authors
+
+- **Boschi404** — Creator and Lead Architect
+- **ffazecaldy** — Collaborator and Co-Architect
+- **Hermes Agent** — Testing Agent
