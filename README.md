@@ -1,9 +1,18 @@
-# Elysium Swarmloop
-The Self-Improving Multi-Agent Orchestration Engine
+<p align="center">
+  <img src="assets/logo-banner.svg" alt="Elysium Swarmloop" width="100%">
+</p>
 
-*Towards Agentic Utopia.*
+<p align="center">
+  <strong>The Self-Improving Multi-Agent Orchestration Engine</strong><br>
+  <em>Towards Agentic Utopia.</em>
+</p>
 
-**Latest version: v5.1.0**
+<p align="center">
+  <img src="https://img.shields.io/badge/version-5.1.0-34d399?style=flat-square&labelColor=0f172a">
+  <img src="https://img.shields.io/badge/license-MIT-22d3ee?style=flat-square&labelColor=0f172a">
+  <img src="https://img.shields.io/badge/subagents-100-a78bfa?style=flat-square&labelColor=0f172a">
+  <img src="https://img.shields.io/badge/depth-2-fbbf24?style=flat-square&labelColor=0f172a">
+</p>
 
 ## What is Elysium Swarmloop?
 
@@ -21,8 +30,13 @@ A Hermes Agent skill that transforms every prompt into an autonomous agentic wor
 ```
 ├── SKILL.md                    # The autonomous loop engine (v5.1.0)
 ├── README.md                   # This file
+├── SETUP.md                    # Complete installation guide
+├── assets/
+│   ├── logo-banner.svg         # Banner logo (800×200)
+│   └── logo-icon.svg           # Icon logo (120×120)
 ├── scripts/
-│   └── init-state.sh           # Bootloader — initializes STATE
+│   ├── init-state.sh           # Bootloader — initializes STATE
+│   └── install.sh              # Auto-installer (bash install.sh)
 └── references/
     └── pattern-store.sql       # SQLite schema for pattern persistence
 ```
@@ -42,9 +56,13 @@ while goal_not_achieved:
 
 ## Quick Start
 
-1. Install the skill: `skill_manage(action='create', name='elysium-swarmloop', ...)`
-2. Set config (see below)
-3. Every prompt from then on runs through the autonomous loop
+```bash
+# Auto-install (raccomandato):
+bash scripts/install.sh
+
+# Oppure manuale:
+skill_view(name='elysium-swarmloop')
+```
 
 ## Required Config
 
@@ -58,13 +76,15 @@ delegation:
   orchestrator_enabled: true     # enable hierarchical orchestration
 ```
 
-These settings are not optional tweaks. They are the difference between "it runs" and "it delivers production-quality results at scale." Elysium Swarmloop is designed to saturate these limits — without them, you're running a fraction of the engine.
+These settings are not optional tweaks.
 
 ## What's New in v5.1
 
 - **Tier Definitions** — Clear Tier 1-4 auto-detection with fast-path for trivial tasks
 - **Quality Scoring Rubric** — Objective 0-10 scoring criteria with rationale requirement
 - **Phase 7 — Self-Execution Infrastructure** — Bootloader script, SQLite pattern persistence via MCP, MCP integration guide, cron scheduling
+- **Auto-Installer** — Single `bash scripts/install.sh` does everything
+- **SVG Logos** — Banner and icon in `assets/`
 - **6 new pitfalls** — More guardrails against common failure modes
 
 ## License
@@ -76,3 +96,9 @@ MIT
 - **Boschi404** — Creator and Lead Architect
 - **ffazecaldy** — Collaborator and Co-Architect
 - **Hermes Agent** — Testing Agent
+
+---
+
+<p align="center">
+  <img src="assets/logo-icon.svg" alt="ES" width="48">
+</p>
