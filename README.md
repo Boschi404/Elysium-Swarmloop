@@ -32,6 +32,22 @@ while goal_not_achieved:
 2. Set `max_concurrent_children` and `max_spawn_depth: 2` in config.yaml
 3. Every prompt from then on runs through the autonomous loop
 
+## Required Config
+
+To get real, tangible results — not just demos — your Hermes config.yaml needs these settings:
+
+```yaml
+delegation:
+  max_concurrent_children: 100   # up to 100 sub-agents in parallel
+  max_async_children: 100        # same for async operations
+  max_spawn_depth: 2             # orchestrators can spawn leaf workers
+  child_timeout_seconds: 600     # enough time for complex tasks
+  max_iterations: 50             # allow deep reasoning per agent
+  orchestrator_enabled: true     # enable hierarchical orchestration
+```
+
+These settings are not optional tweaks. They are the difference between "it runs" and "it delivers production-quality results at scale." Elysium Swarmloop is designed to saturate these limits — without them, you're running a fraction of the engine.
+
 ## Versioning
 
 This skill is self-improving. Each meaningful improvement bumps the version:
