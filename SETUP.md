@@ -1,4 +1,4 @@
-# Elysium Swarmloop — Installazione Perfetta (v5.1.0)
+# Elysium Swarmloop — Installazione Perfetta (v0.6.0)
 
 Guida step-by-step per installare e configurare la skill in Hermes Agent.
 

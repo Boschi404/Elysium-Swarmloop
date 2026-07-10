@@ -8,10 +8,10 @@
 </p>
 
 <p align="center">
-  <img src="https://img.shields.io/badge/version-5.1.0-34d399?style=flat-square&labelColor=0f172a">
-  <img src="https://img.shields.io/badge/license-MIT-22d3ee?style=flat-square&labelColor=0f172a">
-  <img src="https://img.shields.io/badge/subagents-100-a78bfa?style=flat-square&labelColor=0f172a">
-  <img src="https://img.shields.io/badge/depth-2-fbbf24?style=flat-square&labelColor=0f172a">
+  <img src="https://img.shields.io/badge/version-0.6.0-d4a017?style=flat-square&labelColor=080c14">
+  <img src="https://img.shields.io/badge/license-MIT-d4a017?style=flat-square&labelColor=080c14">
+  <img src="https://img.shields.io/badge/subagents-100-f0d860?style=flat-square&labelColor=080c14">
+  <img src="https://img.shields.io/badge/depth-2/3-ffd700?style=flat-square&labelColor=080c14">
 </p>
 
 ## What is Elysium Swarmloop?
@@ -28,7 +28,7 @@ A Hermes Agent skill that transforms every prompt into an autonomous agentic wor
 ## Repository Structure
 
 ```
-├── SKILL.md                    # The autonomous loop engine (v5.1.0)
+├── SKILL.md                    # The autonomous loop engine (v0.6.0)
 ├── README.md                   # This file
 ├── SETUP.md                    # Complete installation guide
 ├── assets/
@@ -36,7 +36,8 @@ A Hermes Agent skill that transforms every prompt into an autonomous agentic wor
 │   └── logo-icon.svg           # Icon logo (120×120)
 ├── scripts/
 │   ├── init-state.sh           # Bootloader — initializes STATE
-│   └── install.sh              # Auto-installer (bash install.sh)
+│   ├── install.sh              # Auto-installer (bash install.sh)
+│   └── session_manager.py      # Session state, checkpoint, interrupt recovery
 └── references/
     └── pattern-store.sql       # SQLite schema for pattern persistence
 ```
@@ -78,14 +79,26 @@ delegation:
 
 These settings are not optional tweaks.
 
-## What's New in v5.1
+## What's New in v0.6
 
-- **Tier Definitions** — Clear Tier 1-4 auto-detection with fast-path for trivial tasks
-- **Quality Scoring Rubric** — Objective 0-10 scoring criteria with rationale requirement
-- **Phase 7 — Self-Execution Infrastructure** — Bootloader script, SQLite pattern persistence via MCP, MCP integration guide, cron scheduling
-- **Auto-Installer** — Single `bash scripts/install.sh` does everything
-- **SVG Logos** — Banner and icon in `assets/`
-- **6 new pitfalls** — More guardrails against common failure modes
+- **Security Shield AUTO** — Regex-based hardcoded secret and SQL injection prevention on ALL code tasks
+- **Context Window Protection** — Budget calculation, wave dispatch, summary compression, death spiral prevention
+- **10 Self-Learning Guardrails** — Memory budget, lesson validation, skill mutation protection, drift detection, transparency log, and more
+- **Shared Interface Contracts** — Function signatures documented pre-dispatch eliminates 90% of integration bugs
+- **Actor-Critic Escalation Trigger** — Meta-evaluation after 3+ retries distinguishes task difficulty from structural problems
+- **Streaming Dispatch** — Wave-based dispatch with zero dead time between batches
+- **4-Band Filter** — Pre-check saves 8K tokens on simple tasks
+- **Clean Code Standards** — Type hints, SRP, DRY enforcement by tier
+- **Physical File Validation + Execution Reality Check** — Verify files exist, no stubs, no syntax errors, sandbox tests
+- **Git Commit+Push Policy** — Auto-commit per task with assembly task for shared files
+- **3-Level Pattern Capture** — Memory entry (200 chars) + JSON cache (zero token cost) + dedicated skill
+- **Codebase Familiarity Override** — 50-80% subagent reduction on known codebases
+- **Subagent Prompt Template** — Structured self-aware prompts with mandatory RESULT format
+- **B1-B6 Anti-Bottleneck Rules** — 6 rules preventing orchestrator deadlocks
+- **Phase 10 — Skill Ecosystem Integration** — Load TDD, verification, code-review, debugging skills in loop
+- **Phase 11 — Long Session Management** — Checkpoints, quality trend, interrupt recovery
+- **session_manager.py** — Python class for session state tracking
+- **Dark + Gold SVG Logos** — New v0.6 branded assets with gold reflections
 
 ## License
 
