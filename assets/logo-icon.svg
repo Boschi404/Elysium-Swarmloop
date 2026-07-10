@@ -1,79 +1,112 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 120" width="120" height="120">
+<svg width="240" height="240" viewBox="0 0 240 240" xmlns="http://www.w3.org/2000/svg">
   <defs>
-    <!-- Gold gradient primary -->
-    <linearGradient id="gold1" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" style="stop-color:#f0d860"/>
-      <stop offset="35%" style="stop-color:#d4a017"/>
-      <stop offset="70%" style="stop-color:#f5e080"/>
-      <stop offset="100%" style="stop-color:#b8860b"/>
+    <radialGradient id="bgGlow" cx="50%" cy="38%" r="75%">
+      <stop offset="0%" stop-color="#2a140a"/>
+      <stop offset="45%" stop-color="#140b09"/>
+      <stop offset="100%" stop-color="#070504"/>
+    </radialGradient>
+
+    <linearGradient id="panelFill" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#ffffff" stop-opacity="0.09"/>
+      <stop offset="45%" stop-color="#ffffff" stop-opacity="0.02"/>
+      <stop offset="100%" stop-color="#ffffff" stop-opacity="0.00"/>
     </linearGradient>
-    <!-- Gold shine / reflection overlay -->
-    <linearGradient id="goldShine" x1="0%" y1="0%" x2="0%" y2="100%">
-      <stop offset="0%" style="stop-color:#fff5cc; stop-opacity:0.5"/>
-      <stop offset="25%" style="stop-color:#f5e080; stop-opacity:0.2"/>
-      <stop offset="50%" style="stop-color:#d4a017; stop-opacity:0"/>
-      <stop offset="100%" style="stop-color:#8b6914; stop-opacity:0.15"/>
+
+    <linearGradient id="panelStroke" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#ffb37a" stop-opacity="0.55"/>
+      <stop offset="50%" stop-color="#ff7a4d" stop-opacity="0.22"/>
+      <stop offset="100%" stop-color="#ff4d4d" stop-opacity="0.4"/>
     </linearGradient>
-    <!-- Glow filter -->
-    <filter id="glow">
-      <feGaussianBlur stdDeviation="1.5" result="blur"/>
-      <feMerge>
-        <feMergeNode in="blur"/>
-        <feMergeNode in="blur"/>
-        <feMergeNode in="SourceGraphic"/>
-      </feMerge>
+
+    <linearGradient id="emberArc" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#ffd166"/>
+      <stop offset="50%" stop-color="#ff8c3b"/>
+      <stop offset="100%" stop-color="#ef4444"/>
+    </linearGradient>
+
+    <radialGradient id="coreGrad" cx="38%" cy="32%" r="75%">
+      <stop offset="0%" stop-color="#fff6e6"/>
+      <stop offset="30%" stop-color="#ffd166"/>
+      <stop offset="65%" stop-color="#ff8c3b"/>
+      <stop offset="100%" stop-color="#e63946"/>
+    </radialGradient>
+
+    <radialGradient id="nodeGrad" cx="35%" cy="30%" r="75%">
+      <stop offset="0%" stop-color="#fff8ef"/>
+      <stop offset="55%" stop-color="#ffb066"/>
+      <stop offset="100%" stop-color="#ef5b3f"/>
+    </radialGradient>
+
+    <filter id="softBlur" x="-100%" y="-100%" width="300%" height="300%">
+      <feGaussianBlur stdDeviation="6"/>
     </filter>
-    <filter id="glowSoft">
-      <feGaussianBlur stdDeviation="1" result="blur"/>
-      <feMerge>
-        <feMergeNode in="blur"/>
-        <feMergeNode in="SourceGraphic"/>
-      </feMerge>
+    <filter id="strongBlur" x="-150%" y="-150%" width="400%" height="400%">
+      <feGaussianBlur stdDeviation="14"/>
     </filter>
+    <filter id="tinyBlur" x="-100%" y="-100%" width="300%" height="300%">
+      <feGaussianBlur stdDeviation="2.2"/>
+    </filter>
+
+    <clipPath id="panelClip">
+      <rect x="8" y="8" width="224" height="224" rx="52"/>
+    </clipPath>
   </defs>
-  
-  <!-- Background - ultra dark with rounded corners -->
-  <rect width="120" height="120" rx="24" fill="#080c14"/>
-  <rect width="120" height="120" rx="24" fill="url(#goldShine)" opacity="0.04"/>
-  
-  <!-- Subtle gold border -->
-  <rect x="1" y="1" width="118" height="118" rx="23" fill="none" stroke="#d4a017" stroke-width="0.5" opacity="0.15"/>
-  
-  <!-- Constellation top - gold -->
-  <g filter="url(#glowSoft)">
-    <circle cx="25" cy="40" r="3" fill="#f0d860" opacity="0.5"/>
-    <circle cx="42" cy="30" r="4" fill="#ffd700" opacity="0.7"/>
-    <circle cx="60" cy="28" r="2.5" fill="#d4a017" opacity="0.4"/>
-    <circle cx="78" cy="35" r="4.5" fill="#f5e080" opacity="0.8"/>
-    <circle cx="90" cy="50" r="3" fill="#ffd700" opacity="0.6"/>
+
+  <!-- background -->
+  <rect x="0" y="0" width="240" height="240" rx="56" fill="url(#bgGlow)"/>
+
+  <g clip-path="url(#panelClip)">
+    <!-- ambient color blooms behind glass -->
+    <circle cx="70" cy="190" r="70" fill="#ef4444" opacity="0.20" filter="url(#strongBlur)"/>
+    <circle cx="185" cy="55" r="65" fill="#ff8c3b" opacity="0.22" filter="url(#strongBlur)"/>
+
+    <!-- orbit connection lines -->
+    <g stroke-linecap="round" opacity="0.55">
+      <line x1="120" y1="120" x2="120" y2="43" stroke="url(#emberArc)" stroke-width="1.6"/>
+      <line x1="120" y1="120" x2="187" y2="81" stroke="url(#emberArc)" stroke-width="1.6"/>
+      <line x1="120" y1="120" x2="187" y2="159" stroke="url(#emberArc)" stroke-width="1.6"/>
+      <line x1="120" y1="120" x2="120" y2="197" stroke="url(#emberArc)" stroke-width="1.6"/>
+      <line x1="120" y1="120" x2="53" y2="159" stroke="url(#emberArc)" stroke-width="1.6"/>
+      <line x1="120" y1="120" x2="53" y2="81" stroke="url(#emberArc)" stroke-width="1.6"/>
+    </g>
+
+    <!-- loop arc (self-improving cycle), ~290 degrees with arrowhead -->
+    <path d="M 120 38 A 82 82 0 1 1 45.5 96" fill="none" stroke="url(#emberArc)" stroke-width="4.5" stroke-linecap="round" opacity="0.95"/>
+    <!-- arrowhead at loop end -->
+    <path d="M 36 80 L 45.5 96 L 62 90.5" fill="none" stroke="url(#emberArc)" stroke-width="4.5" stroke-linecap="round" stroke-linejoin="round"/>
+
+    <!-- leaf nodes -->
+    <g>
+      <circle cx="120" cy="43" r="10.5" fill="url(#nodeGrad)" opacity="0.35" filter="url(#softBlur)"/>
+      <circle cx="120" cy="43" r="7.5" fill="url(#nodeGrad)"/>
+
+      <circle cx="187" cy="81" r="10.5" fill="url(#nodeGrad)" opacity="0.35" filter="url(#softBlur)"/>
+      <circle cx="187" cy="81" r="7.5" fill="url(#nodeGrad)"/>
+
+      <circle cx="187" cy="159" r="10.5" fill="url(#nodeGrad)" opacity="0.35" filter="url(#softBlur)"/>
+      <circle cx="187" cy="159" r="7.5" fill="url(#nodeGrad)"/>
+
+      <circle cx="120" cy="197" r="10.5" fill="url(#nodeGrad)" opacity="0.35" filter="url(#softBlur)"/>
+      <circle cx="120" cy="197" r="7.5" fill="url(#nodeGrad)"/>
+
+      <circle cx="53" cy="159" r="10.5" fill="url(#nodeGrad)" opacity="0.35" filter="url(#softBlur)"/>
+      <circle cx="53" cy="159" r="7.5" fill="url(#nodeGrad)"/>
+
+      <circle cx="53" cy="81" r="10.5" fill="url(#nodeGrad)" opacity="0.35" filter="url(#softBlur)"/>
+      <circle cx="53" cy="81" r="7.5" fill="url(#nodeGrad)"/>
+    </g>
+
+    <!-- core orchestrator node -->
+    <circle cx="120" cy="120" r="32" fill="#ff8c3b" opacity="0.32" filter="url(#strongBlur)"/>
+    <circle cx="120" cy="120" r="23" fill="url(#coreGrad)"/>
+    <circle cx="120" cy="120" r="23" fill="none" stroke="#ffffff" stroke-opacity="0.5" stroke-width="1"/>
+    <circle cx="113" cy="112" r="6" fill="#ffffff" opacity="0.6" filter="url(#tinyBlur)"/>
+
+    <!-- glass sheen -->
+    <ellipse cx="70" cy="40" rx="120" ry="55" fill="#ffffff" opacity="0.05"/>
   </g>
-  <!-- Constellation bottom - gold -->
-  <g filter="url(#glowSoft)">
-    <circle cx="25" cy="80" r="3" fill="#d4a017" opacity="0.5"/>
-    <circle cx="42" cy="90" r="4" fill="#f0d860" opacity="0.7"/>
-    <circle cx="60" cy="92" r="2.5" fill="#b8860b" opacity="0.4"/>
-    <circle cx="78" cy="85" r="4.5" fill="#ffd700" opacity="0.8"/>
-    <circle cx="90" cy="70" r="3" fill="#f5e080" opacity="0.6"/>
-  </g>
-  
-  <!-- Constellation lines -->
-  <g stroke="#d4a017" stroke-width="0.6" opacity="0.2">
-    <line x1="25" y1="40" x2="42" y2="30"/>
-    <line x1="42" y1="30" x2="60" y2="28"/>
-    <line x1="60" y1="28" x2="78" y2="35"/>
-    <line x1="78" y1="35" x2="90" y2="50"/>
-    <line x1="25" y1="80" x2="42" y2="90"/>
-    <line x1="42" y1="90" x2="60" y2="92"/>
-    <line x1="60" y1="92" x2="78" y2="85"/>
-    <line x1="78" y1="85" x2="90" y2="70"/>
-  </g>
-  
-  <!-- Central infinity/loop symbol - gold -->
-  <g transform="translate(60, 60)" filter="url(#glow)">
-    <path d="M -18,-15 C -9,-24 9,-24 18,-15 C 27,-6 18,6 9,9 C 0,12 -9,9 -15,3 C -21,-3 -27,6 -18,15 C -9,24 9,24 18,15"
-          fill="none" stroke="url(#gold1)" stroke-width="2.5" stroke-linecap="round" opacity="0.95"/>
-  </g>
-  
-  <!-- Version text -->
-  <text x="60" y="112" text-anchor="middle" fill="#d4a017" font-family="'JetBrains Mono', monospace" font-size="7" opacity="0.6" font-weight="600">v0.6</text>
+
+  <!-- glass panel fill + border on top -->
+  <rect x="8" y="8" width="224" height="224" rx="52" fill="url(#panelFill)"/>
+  <rect x="8.75" y="8.75" width="222.5" height="222.5" rx="51.25" fill="none" stroke="url(#panelStroke)" stroke-width="1.5"/>
 </svg>
