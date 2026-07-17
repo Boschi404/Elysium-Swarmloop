@@ -638,13 +638,19 @@ CONTEXT BUDGET RULES:
    └─ Never ignore compression triggers — they signal overflow
 
 5. HARD TIMEOUT GUARD (PREVENTS SILENT FAILURES):
-   ├─ If a task runs > 120s without returning a result → auto-split into 2 micro-tasks
-   ├─ If 2+ tasks in the same batch timeout → reduce next wave by 50%
-   ├─ If 3+ consecutive timeouts on same task type → downgrade to Tier 2 granularity
-   ├─ HARD CAP: no single task may exceed 180s execution time
-   │   └─ On 180s timeout → kill subagent, re-dispatch as 3 smaller tasks
-   │   └─ If 3 smaller tasks also timeout → escalate to Phase 3j (not silent timeout)
-   └─ Track timeout rate: if >10% of tasks in a batch timeout → reduce batch size permanently for this session
+   ├─ HARD CAP: 180s execution time per task (Hermes default child_timeout_seconds)
+   │   └─ On 180s timeout → kill subagent, DO NOT leave at 0/100
+   │   └─ Generate partial result: what WAS produced, what was missing
+   │   └─ Score: 4/10 minimum (partial completion, not zero)
+   ├─ TIMEOUT ESCALATION (non più morte silenziosa):
+   │   └─ 1st timeout on a task type → re-dispatch as 2 smaller tasks with 240s combined
+   │   └─ 2nd timeout on same task type → inline execution by main agent
+   │   └─ 3rd timeout → apply Phase 3j-bis Graceful Degradation
+   └─ TIMEOUT RATE TRACKING:
+       ├─ Track: timeout_count / total_tasks per batch
+       ├─ If > 10% timeout rate → reduce next batch size by 50%
+       ├─ If > 25% timeout rate in 3 consecutive batches → downgrade Tier
+       └─ Hard rule: never exceed 15 subagents in-flight if any timeout occurred in current batch
 ```
 
 **Real cost of ignoring this:** 100 summaries saturate the context → Hermes compresses → loses context of completed tasks → retries duplicate already-done tasks → more summaries → overflow again → death spiral → session crashes or produces terrible quality.
@@ -1430,9 +1436,9 @@ Detecting tier by keyword matching (e.g. `'api'` in goal text) is fragile. The s
 ```
 v0.7.2 — Benchmark-driven fixes: recall enforcement (Phase 4c — matched patterns
          MUST be used, calibration mandatory before decompose, FPR enforcement),
-         timeout guard (Phase 3d point 5 — hard cap 180s, auto-split >120s,
-         timeout rate tracking), deprecation check (Phase 3a check 4 — Pydantic v1,
-         old typing imports, bare .dict()/.json()),
+         timeout guard (Phase 3d point 5 — hard cap 180s, timeout escalation
+         ladder, never leave 0/100, partial result on timeout, batch reduction),
+         deprecation check (Phase 3a check 4 — Pydantic v1, old typing imports, bare .dict()/.json()),
          error handling standards (Phase 1c point 4 — mandatory try/except on
          external calls, API error codes, bare except ban),
          format validation (Phase 3b point 5 — SQL parameterized queries, API
