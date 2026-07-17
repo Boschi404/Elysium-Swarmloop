@@ -1,7 +1,7 @@
 ---
 name: elysium-swarmloop
 description: "The Self-Improving Multi-Agent Orchestration Engine. Always-on autonomous agentic loop: prompt enhancement → deep research → massive scatter-gather (up to 100 subagents) → streaming quality gate (immediate retry on arrival) → self-learning iteration → loop until goal achieved with zero human intervention. Auto-activates on EVERY prompt."
-version: 0.7.1
+version: 0.7.2
 author: Boschi404 + ffazecaldy
 testing-agent: Hermes Agent
 tags: [agentic, auto, workflow, multi-agent, quality, research, iteration, scatter-gather, streaming-gather, self-learning, autonomous-loop, meta-scaling, orchestrator-depth2, self-improving, swarmloop, guardrails, security-shield, context-protection, contracts, clarification, plan-integration, sandbox-racing, quality-first, e2e-tested]
@@ -372,10 +372,17 @@ CLEAN CODE STANDARDS (injected into quality criteria):
 ├─ Applied only after 3+ retries (not for every task — expensive)
 └─ Verified by Actor-Critic, not automatic regex
 3. DRY — DON'T REPEAT YOURSELF (Tier 3-4, via Assembly Task):
-├─ If two subagents produce duplicate code, the Assembly Task extracts
-│ it into a shared module (utils/ or config/)
-├─ Applied POST-BATCH, not during individual dispatch
-└─ Verified by Assembly Task (Phase 3g point 6)
+   ├─ If two subagents produce duplicate code, the Assembly Task extracts
+   │   it into a shared module (utils/ or config/)
+   ├─ Applied POST-BATCH, not during individual dispatch
+   └─ Verified by Assembly Task (Phase 3g point 6)
+
+4. ERROR HANDLING (Tier 2-4, MANDATORY):
+   ├─ Every function that interacts with external systems (DB, API, filesystem, network) MUST have try/except
+   ├─ API routes MUST return appropriate error status codes (4xx for client errors, 5xx for server errors)
+   ├─ Bare `except:` without Exception class → ❌ FAILED. Use `except Exception as e:` minimum
+   ├─ Applied to ALL task types, validated in Phase 3b (check 5)
+   └─ Verified by grep for "try:" after every "open(", ".request(", ".execute(", ".connect(" call
 ```
 ### 1d — Shared Interface Contracts (pre-dispatch)
 Before dispatching subagents that produce calling/called modules (e.g. router.py → client.py), document the \*\*complete function signatures\*\* in the context of EVERY subagent involved.
@@ -519,8 +526,15 @@ SECURITY AUTO CHECK (run after file validation, before quality gate):
 │ session.query(User).filter(User.id == user\_id) [ORM]
 └─ If found → ❌ RETRY: "Use parameterized queries or ORM, never f-string SQL"
 3. PLACEHOLDER SECRETS (warning — doesn't block):
-├─ Regex: \b(API\_KEY|TOKEN|SECRET)\s\*=\s\*(['"]\s\*['"]|None|''|"")\s\*#\s\*TODO
-└─ If found → ⚠️ WARNING (may be intentional)
+   ├─ Regex: \b(API_KEY|TOKEN|SECRET)\s*=\s*(['"]\s*['"]|None|''|"")\s*#\s*TODO
+   └─ If found → ⚠️ WARNING (may be intentional)
+
+4. DEPRECATED API PATTERNS (HIGH — blocks task):
+   ├─ Regex: \.__fields__\b|\.dict\(\)|\.json\(\)|pydantic\.v1|from typing import.*Type|@app\.route\([^)]+\)\s+\ndef
+   ├─ Blocks: Pydantic v1 __fields__ access, bare .dict()/.json() calls, old typing imports without TYPE_CHECKING guard
+   ├─ OK: SQLAlchemy/SQLModel patterns, @app.route with HTTP methods decorator on separate line
+   ├─ exceptions: files in /tests/, /migrations/, /alembic/, /docs/
+   └─ If found → ❌ RETRY: "Use current version APIs — check for deprecation alternatives"
 ```
 ### 3a-quinques — Parallel Sandbox Racing (NEW v0.7)
 \*For critical tasks: 3-5 identical subagents in parallel, first to pass wins.\*
@@ -563,15 +577,24 @@ CON (Sandbox Racing):
 **Why it's better than sequential retry:** 5 approaches in parallel find the solution in 1/5 the time. The right approach (async vs sync, library X vs Y) is found by exploration, not repetition.
 
 ### 3b — Physical File Validation (MANDATORY for Tier 2-4)
-\*\*Not optional anymore.\*\* Every code-producing task MUST pass this before being marked complete. Doc/config tasks → skip.
+**Not optional anymore.** Every code-producing task MUST pass this before being marked complete. Doc/config tasks → skip.
 ```
 VALIDATE RESULT (mandatory for code tasks):
-1. read\_file(task.files\_created[0]) — exists? → if not, ❌ fail immediate
-2. grep -n "TODO\|pass\|stub" task.files\_created — dead code? → ❌
+1. read_file(task.files_created[0]) — exists? → if not, ❌ fail immediate
+2. grep -n "TODO\|pass\|stub" task.files_created — dead code? → ❌
 3. python -c "from task.module import ..." — syntax ok? → ❌
-4. wc -l task.files\_created — file not empty? → ❌
+4. wc -l task.files_created — file not empty? → ❌
+5. FORMAT & ERROR HANDLING VALIDATION (for data/DB/API tasks):
+   ├─ For SQL tasks: verify parameterized queries — grep for "?" or "%s" or ":param" after "execute("
+   │   └─ If raw string interpolation found → ❌ RETRY: "Use parameterized queries"
+   ├─ For API tasks: verify error handling — grep for "try:" after every "open(", ".request(", ".execute("
+   │   └─ If try/except missing → ❌ RETRY: "Add error handling around external calls"
+   ├─ For data analysis tasks: verify output format matches expected schema
+   │   └─ Check: output type matches spec (dict, list, DataFrame, str)
+   └─ For ALL tasks: grep for deprecated patterns from Phase 3a check 4
+       └─ If found → ❌ RETRY with specific deprecation feedback
 ```
-If physical validation fails → \*\*immediate retry with specific feedback\*\* (no silent failure).
+If physical validation fails → **immediate retry with specific feedback** (no silent failure).
 ### 3c — Execution Reality Check (for standalone scripts and tests)
 For \*\*standalone scripts, pure functions, or unit tests\*\*, run the code in sandbox:
 ```
@@ -609,14 +632,24 @@ CONTEXT BUDGET RULES:
 ├─ Tier 3: summary <1000 tokens (5-10 lines)
 └─ Tier 4: summary <2000 tokens (10-20 lines)
 4. Compression death spiral prevention:
-├─ If context compression triggers 2+ times in one session:
-│ └─ ⚠️ CONTEXT SATURATED — reduce subagents or summary size
-│ └─ Switch to smaller wave dispatch
-└─ Never ignore compression triggers — they signal overflow
+   ├─ If context compression triggers 2+ times in one session:
+   │   └─ ⚠️ CONTEXT SATURATED — reduce subagents or summary size
+   │   └─ Switch to smaller wave dispatch
+   └─ Never ignore compression triggers — they signal overflow
+
+5. HARD TIMEOUT GUARD (PREVENTS SILENT FAILURES):
+   ├─ If a task runs > 120s without returning a result → auto-split into 2 micro-tasks
+   ├─ If 2+ tasks in the same batch timeout → reduce next wave by 50%
+   ├─ If 3+ consecutive timeouts on same task type → downgrade to Tier 2 granularity
+   ├─ HARD CAP: no single task may exceed 180s execution time
+   │   └─ On 180s timeout → kill subagent, re-dispatch as 3 smaller tasks
+   │   └─ If 3 smaller tasks also timeout → escalate to Phase 3j (not silent timeout)
+   └─ Track timeout rate: if >10% of tasks in a batch timeout → reduce batch size permanently for this session
 ```
-\*\*Real cost of ignoring this:\*\* 100 summaries saturate the context → Hermes compresses → loses context of completed tasks → retries duplicate already-done tasks → more summaries → overflow again → death spiral → session crashes or produces terrible quality.
+
+**Real cost of ignoring this:** 100 summaries saturate the context → Hermes compresses → loses context of completed tasks → retries duplicate already-done tasks → more summaries → overflow again → death spiral → session crashes or produces terrible quality.
 ### 3e — Adaptive Threshold Tuning (mid-loop, next batch only)
-If too many tasks fail, \*\*adjust decomposition for the next batch\*\* (NOT for already-dispatched tasks):
+If too many tasks fail, **adjust decomposition for the next batch** (NOT for already-dispatched tasks):
 ```
 MONITOR:
 if first\_pass\_rate (after 25% of tasks) < 60%:
@@ -695,8 +728,37 @@ elif score WORSENED:
 4. ESCALATE TO USER with specific gaps and quality score
 5. User decides: skip / accept with gap / manual fix
 ```
-\*\*Rule:\*\* never reach step 4 without trying at least 3 different strategies.
 
+**Rule:** never reach step 4 without trying at least 3 different strategies.
+
+### 3j-bis — Graceful Degradation on Timeout (NEW)
+
+**Problem:** Some tasks (code_review, large refactors) produce 0/100 on timeout — a binary fail with no partial credit.
+
+**Solution:** Before reaching timeout -> escalate, try a minimal fallback:
+
+```
+TIMEOUT GRACEFUL DEGRADATION:
+
+1. FIRST TIMEOUT (>120s no result):
+   └─ Kill subagent, re-dispatch as 2 smaller tasks with HALF the scope
+   └─ Clear deadline: "Return SOMETHING within 60s, even partial"
+   └─ If partial result arrives → score 5/10 minimum (not 0)
+
+2. SECOND TIMEOUT on same task type:
+   └─ Downgrade: run the task YOURSELF (inline, no subagent)
+   └─ Produce minimal viable version (stubs OK with # TODO: expand)
+   └─ Score: 4/10 (not 0) — acknowledged as partial
+
+3. THIRD TIMEOUT or task inherently non-sandboxable:
+   └─ Calculate what CAN be done: grep for existing patterns, apply known template
+   └─ Return partial result with explicit "PARTIAL — missing: [list specific gaps]"
+   └─ Mark as "partial_complete" in STATE, NOT as failed
+
+4. HARD RULE: Never leave a task at 0/100 due to timeout
+   └─ Always produce SOMETHING (even a stub with docstring explaining the gap)
+   └─ The user can decide to expand later — 0/100 is invisible, 5/100 is actionable
+```
 ### 3k — Global Re-Check Pass (NEW v0.7)
 \*Post-assembly: read ALL files to find cross-module inconsistencies.\*
 
@@ -781,25 +843,46 @@ if avg < 0.6: return {"granularity": "fine", "threshold": threshold - 0.5}
 if avg > 0.95: return {"granularity": "coarse", "subagents": subagents \* 0.7}
 return {"granularity": "balanced"}
 ```
-### 4c — Token-Efficient Recall (pre-loop sequence)
-At the start of every coding session, before Phase 0, run a \*\*rapid recall\*\*:
+### 4c — Token-Efficient Recall (pre-loop sequence) — MANDATORY
+
+**CRITICAL RULE:** Recall is NOT optional. The self-learning loop relies on past patterns to improve FPR. Skipping recall is the #1 reason FPR degrades across sessions.
+
+At the start of every coding session, before Phase 0, **MUST** run a rapid recall:
+
 ```
 RECALL SEQUENCE (~1000 tokens):
+
 1. Memory injection (automatic, zero extra cost)
-└─ ES[...] entries are already in context
-└─ Scan: are there pattern matches for this goal\_type?
-2. Pattern cache check (1 read\_file call)
-└─ read\_file(~/.hermes/pattern\_cache.json)
-└─ Match for goal\_type? → use as template
-3. Skill list check (1 skills\_list call)
-└─ Does "pattern-{goal\_type}" skill exist?
-└─ If yes → load with skill\_view (optimized structure)
-4. Dynamic Knowledge check (1-2 read\_file calls):
-├─ Read ./.hermes/local-patterns.md (if exists in current project, ~200 tokens)
-├─ Read ~/.hermes/references/dynamic-patterns.md filtered for goal technologies (~300 tokens)
-└─ Inject relevant rules as extra\_criteria in subagents
+   └─ ES[...] entries are already in context
+   └─ If match found for goal_type → MUST use as template (skip creative decomposition)
+
+2. Pattern cache check (1 read_file call) — **MANDATORY**
+   └─ read_file(~/.hermes/pattern_cache.json)
+   └─ If match for goal_type with FPR > 70% → MUST use as template
+   └─ If pattern exists but not used → add failing guardrail in final report
+
+3. Skill list check (1 skills_list call)
+   └─ Does "pattern-{goal_type}" skill exist?
+   └─ If yes → MUST load with skill_view, inject as decomposition blueprint
+
+4. Dynamic Knowledge check (1-2 read_file calls):
+   ├─ ALWAYS read ./.hermes/local-patterns.md (if exists in current project)
+   ├─ Read ~/.hermes/references/dynamic-patterns.md filtered for goal technologies
+   └─ Inject relevant rules as extra_criteria in subagents
+
+5. Calibration check — **MANDATORY**
+   └─ If history exists for this goal_type (3+ entries) → calibrate BEFORE decomposing
+   └─ Adjust threshold, granularity, and subagent count based on past FPR
+
+6. FPR enforcement:
+   └─ If previous FPR < 60% for same goal_type → force finer granularity
+   └─ If previous FPR > 90% → allow coarser granularity
+   └─ Never decompose from zero when historical data exists
 ```
-\*\*Token savings:\*\* without recall: ~3000-5000 tokens creative decomposition. With recall + match: ~800-1200 tokens template adaptation = \*\*60-75% planning token savings\*\*.
+
+**Token savings:** without recall: ~3000-5000 tokens creative decomposition. With recall + match: ~800-1200 tokens template adaptation = **60-75% planning token savings**.
+
+**Enforcement:** If recall finds a pattern but decomposition ignores it → Automatic -5 penalty on final self-assessment score. The final report MUST list which patterns were found and whether they were applied.
 ### 4d — Self-Learning Feedback Loop (cross-session)
 Complete learning cycle:
 ```
@@ -1345,6 +1428,18 @@ Detecting tier by keyword matching (e.g. `'api'` in goal text) is fragile. The s
 ## Version History
 
 ```
+v0.7.2 — Benchmark-driven fixes: recall enforcement (Phase 4c — matched patterns
+         MUST be used, calibration mandatory before decompose, FPR enforcement),
+         timeout guard (Phase 3d point 5 — hard cap 180s, auto-split >120s,
+         timeout rate tracking), deprecation check (Phase 3a check 4 — Pydantic v1,
+         old typing imports, bare .dict()/.json()),
+         error handling standards (Phase 1c point 4 — mandatory try/except on
+         external calls, API error codes, bare except ban),
+         format validation (Phase 3b point 5 — SQL parameterized queries, API
+         error handling grep, data format schema check),
+         graceful degradation on timeout (Phase 3j-bis — partial result instead
+         of 0/100, 3-level degradation ladder).
+         1360→1430 lines.
 v0.7.1 — Scripts table update for e2e_test.py + validation run instructions.
 New pitfall: keyword substring over-matching in tier/band detection
 ("api" in "/api/users/" → false tier 3, "system" → false tier 4).
