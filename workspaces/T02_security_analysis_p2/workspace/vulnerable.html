@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Guestbook — XSS Vulnerable</title>
+</head>
+<body>
+<h1>Guestbook</h1>
+
+<form id="guestForm">
+  <input type="text" id="nameInput" placeholder="Your name">
+  <textarea id="messageInput" placeholder="Your message"></textarea>
+  <button type="submit">Post</button>
+</form>
+
+<ul id="entries"></ul>
+
+<div id="welcome"></div>
+
+<script>
+// ─── SIMULATE STORED XSS ─────────────────────────────────
+// Reads stored guestbook entries from localStorage and renders
+// them via innerHTML — any script in stored data executes.
+function loadEntries() {
+  const stored = localStorage.getItem('guestbook') || '[]';
+  // VULNERABILITY #1: Stored XSS via innerHTML
+  // User-controlled data (localStorage content) is parsed and
+  // inserted without sanitization.
+  const entries = JSON.parse(stored);
+  const container = document.getElementById('entries');
+  container.innerHTML = '';
+  entries.forEach(e => {
+    // innerHTML interprets HTML tags in the message.
+    // <img src=x onerror=alert(1)> in stored data fires on reload.
+    container.innerHTML += `<li><strong>${e.name}</strong>: ${e.msg}</li>`;
+  });
+}
+
+// ─── SAVE entry (stored XSS injection point) ──────────────
+document.getElementById('guestForm').addEventListener('submit', function(ev) {
+  ev.preventDefault();
+  const name = document.getElementById('nameInput').value;
+  const msg  = document.getElementById('messageInput').value;
+  const stored = JSON.parse(localStorage.getItem('guestbook') || '[]');
+  stored.push({ name, msg });
+  localStorage.setItem('guestbook', JSON.stringify(stored));
+  loadEntries();
+});
+
+// ─── SIMULATE REFLECTED XSS ───────────────────────────────
+// Reads the '?name=' query parameter and writes it directly
+// into innerHTML. An attacker can craft:
+//   guestbook.html?name=<img src=x onerror=alert('XSS')>
+const params = new URLSearchParams(window.location.search);
+const userName = params.get('name');
+if (userName) {
+  // VULNERABILITY #2: Reflected XSS via innerHTML
+  // The 'name' parameter is reflected without encoding.
+  document.getElementById('welcome').innerHTML =
+    'Welcome, ' + userName + '!';
+}
+
+// ─── SIMULATE DOM-BASED XSS ───────────────────────────────
+// Reads a URL hash fragment and inserts it into the page
+// as HTML. The hash is never sent to the server, making this
+// purely DOM-based.
+// Exploit:   guestbook.html#<img src=x onerror=alert('DOM-XSS')>
+const hash = window.location.hash.slice(1);
+if (hash) {
+  // VULNERABILITY #3: DOM-based XSS via innerHTML + location.hash
+  // The fragment is attacker-controlled and inserted raw.
+  const note = document.createElement('div');
+  note.innerHTML = 'Hash note: ' + hash;
+  document.body.appendChild(note);
+}
+
+loadEntries();
+</script>
+</body>
+</html>

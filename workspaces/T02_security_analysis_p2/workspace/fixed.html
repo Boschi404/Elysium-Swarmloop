@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Guestbook — XSS Fixed</title>
+</head>
+<body>
+<h1>Guestbook</h1>
+
+<form id="guestForm">
+  <input type="text" id="nameInput" placeholder="Your name">
+  <textarea id="messageInput" placeholder="Your message"></textarea>
+  <button type="submit">Post</button>
+</form>
+
+<ul id="entries"></ul>
+
+<div id="welcome"></div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/dompurify/3.1.6/purify.min.js"></script>
+<script>
+// ─── SAFE LOAD ENTRIES ─────────────────────────────────────
+// Uses textContent + createElement instead of innerHTML.
+function loadEntries() {
+  const stored = localStorage.getItem('guestbook') || '[]';
+  const entries = JSON.parse(stored);
+  const container = document.getElementById('entries');
+  container.innerHTML = '';
+  entries.forEach(e => {
+    const li = document.createElement('li');
+    const strong = document.createElement('strong');
+    // FIX #1: textContent escapes all HTML — safe against stored XSS
+    strong.textContent = e.name;
+    li.appendChild(strong);
+    li.appendChild(document.createTextNode(': '));
+    // FIX #2: append textContent instead of innerHTML assignment
+    li.appendChild(document.createTextNode(e.msg));
+    container.appendChild(li);
+  });
+}
+
+// ─── SAVE entry (clean, no change needed — JSON preserves data) ──
+document.getElementById('guestForm').addEventListener('submit', function(ev) {
+  ev.preventDefault();
+  const name = document.getElementById('nameInput').value;
+  const msg  = document.getElementById('messageInput').value;
+  const stored = JSON.parse(localStorage.getItem('guestbook') || '[]');
+  stored.push({ name, msg });
+  localStorage.setItem('guestbook', JSON.stringify(stored));
+  loadEntries();
+});
+
+// ─── SAFE REFLECTED PARAM ──────────────────────────────────
+// Uses textContent instead of innerHTML for user-controlled data.
+const params = new URLSearchParams(window.location.search);
+const userName = params.get('name');
+if (userName) {
+  // FIX #3: textContent — no HTML interpretation
+  document.getElementById('welcome').textContent = 'Welcome, ' + userName + '!';
+}
+
+// ─── SAFE DOM-BASED HASH ──────────────────────────────────
+// Uses DOMPurify.sanitize() before innerHTML (when HTML is needed)
+// OR textContent when plain text is sufficient.
+const hash = window.location.hash.slice(1);
+if (hash) {
+  const note = document.createElement('div');
+  // FIX #4 (option A): textContent — simplest, safest for plain text
+  // note.textContent = 'Hash note: ' + hash;
+  //
+  // FIX #4 (option B): DOMPurify when HTML is needed legitimately
+  const sanitized = DOMPurify.sanitize(hash);
+  note.innerHTML = 'Hash note: ' + sanitized;
+  document.body.appendChild(note);
+}
+
+loadEntries();
+</script>
+</body>
+</html>
