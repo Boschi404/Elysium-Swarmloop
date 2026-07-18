@@ -1,9 +1,0 @@
-Name,Age,Salary,Join_Date,Department,Notes
-Alice,30.0,50000.0,2023-01-15,Engineering,senior dev
-Bob,25.0,55000.0,2022-06-01,Marketing,junior
-Charlie,35.0,60000.0,2021-03-20,Engineering,lead
-David,30.0,55000.0,2020-11-01,Finance,
-Eve,28.0,55000.0,,Sales,analyst
-Frank,40.0,70000.0,2019-09-10,Engineering,manager
-Alice,30.0,50000.0,2023-01-15,Engineering,senior dev
-Grace,29.0,55000.0,,HR,coordinator

@@ -1,124 +1,182 @@
-"""
-User Service — Bug Fixes Applied
+"""User CRUD API — Fixed version.
 
-Bugs fixed:
-  1. GET /users/{id}: returns 404 instead of crashing when user not found
-  2. POST /users: rejects empty and whitespace-only names
-  3. PUT /users/{id}: returns 404 if user does not exist before updating
+Bug fixes applied:
+  1. GET /users/{id} — now returns 404 instead of crashing on missing user
+  2. POST /users — rejects empty/invalid names via Pydantic validation
+  3. PUT /users/{id} — now checks user exists before updating
 """
 
-import uuid
-from typing import Optional
+from __future__ import annotations
+
+from typing import List, Optional
 
 from fastapi import FastAPI, HTTPException, status
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
+
+app = FastAPI(title="User CRUD API", version="1.0.0")
+
+# ---------------------------------------------------------------------------
+# In-memory storage
+# ---------------------------------------------------------------------------
+
+_users_db: List[dict] = []
+_next_id: int = 1
 
 
-# ── Models ────────────────────────────────────────────────────────────────
+def _reset_db() -> None:
+    """Reset the in-memory database (useful for tests)."""
+    global _users_db, _next_id  # noqa: PLW0603
+    _users_db = []
+    _next_id = 1
+
+
+# ---------------------------------------------------------------------------
+# Pydantic schemas
+# ---------------------------------------------------------------------------
+
 
 class UserCreate(BaseModel):
-    name: str = Field(..., min_length=1, description="User name, must not be empty")
+    """Request body for creating a user."""
+
+    name: str = Field(..., min_length=1, description="Name must not be empty")
+    email: str = Field(..., description="Valid email address")
+    age: int = Field(..., gt=0, description="Age must be greater than 0")
+
+    @field_validator("name")
+    @classmethod
+    def validate_name(cls, value: str) -> str:
+        """Reject empty/whitespace-only names."""
+        stripped = value.strip()
+        if not stripped:
+            raise ValueError("Name must not be empty or whitespace only")
+        return stripped
+
+    @field_validator("email")
+    @classmethod
+    def validate_email(cls, value: str) -> str:
+        """Ensure email contains '@' and a domain."""
+        if "@" not in value or "." not in value.split("@")[-1]:
+            raise ValueError("Invalid email format — must contain '@' and a domain")
+        return value.lower().strip()
 
 
 class UserUpdate(BaseModel):
-    name: Optional[str] = Field(None, min_length=1, description="Updated user name")
+    """Request body for updating a user. All fields optional."""
+
+    name: Optional[str] = Field(None, min_length=1, description="Name must not be empty")
+    email: Optional[str] = Field(None, description="Valid email address")
+    age: Optional[int] = Field(None, gt=0, description="Age must be greater than 0")
+
+    @field_validator("name")
+    @classmethod
+    def validate_name(cls, value: Optional[str]) -> Optional[str]:
+        """Reject empty/whitespace-only names on update too."""
+        if value is not None:
+            stripped = value.strip()
+            if not stripped:
+                raise ValueError("Name must not be empty or whitespace only")
+            return stripped
+        return None
+
+    @field_validator("email")
+    @classmethod
+    def validate_email(cls, value: Optional[str]) -> Optional[str]:
+        """Ensure email contains '@' and a domain if provided."""
+        if value is not None:
+            if "@" not in value or "." not in value.split("@")[-1]:
+                raise ValueError("Invalid email format — must contain '@' and a domain")
+            return value.lower().strip()
+        return None
 
 
-class User(BaseModel):
-    id: str
+class UserResponse(BaseModel):
+    """Response schema for a user."""
+
+    id: int
     name: str
+    email: str
+    age: int
 
 
-def generate_id() -> str:
-    return str(uuid.uuid4())
+# ---------------------------------------------------------------------------
+# Helper
+# ---------------------------------------------------------------------------
 
 
-# ── Service ────────────────────────────────────────────────────────────────
-
-class UserService:
-    """Thread-safe in-memory user storage."""
-
-    def __init__(self) -> None:
-        self._users: dict[str, User] = {}
-
-    def create_user(self, payload: UserCreate) -> User:
-        """Create a user. BUG 2 FIXED: rejects empty/whitespace names."""
-        name = payload.name.strip()
-        if not name:
-            raise ValueError("User name must not be empty or whitespace-only")
-        user = User(id=generate_id(), name=name)
-        self._users[user.id] = user
-        return user
-
-    def get_user(self, user_id: str) -> User:
-        """BUG 1 FIXED: raises ValueError instead of returning None."""
-        user = self._users.get(user_id)
-        if user is None:
-            raise ValueError(f"User {user_id} not found")
-        return user
-
-    def update_user(self, user_id: str, payload: UserUpdate) -> User:
-        """BUG 3 FIXED: checks existence before updating."""
-        if user_id not in self._users:
-            raise ValueError(f"User {user_id} not found")
-        user = self._users[user_id]
-        if payload.name is not None:
-            name = payload.name.strip()
-            if not name:
-                raise ValueError("User name must not be empty or whitespace-only")
-            user.name = name
-        return user
-
-    def delete_user(self, user_id: str) -> bool:
-        """Delete a user. Returns True if deleted, False if not found."""
-        if user_id in self._users:
-            del self._users[user_id]
-            return True
-        return False
-
-    def list_users(self) -> list[User]:
-        return list(self._users.values())
+def _find_user(user_id: int) -> dict:
+    """Return user dict by id, or raise 404 if not found."""
+    for user in _users_db:
+        if user["id"] == user_id:
+            return user
+    raise HTTPException(
+        status_code=status.HTTP_404_NOT_FOUND,
+        detail=f"User with id {user_id} not found",
+    )
 
 
-# ── App ───────────────────────────────────────────────────────────────────
-
-app = FastAPI(title="User Service", version="0.1.0")
-service = UserService()
-
-
-@app.get("/users", response_model=list[User])
-def list_users():
-    return service.list_users()
+# ---------------------------------------------------------------------------
+# Routes
+# ---------------------------------------------------------------------------
 
 
-@app.get("/users/{user_id}", response_model=User)
-def get_user(user_id: str):
-    """BUG 1 FIXED: returns 404 instead of 500 when user not found."""
-    try:
-        return service.get_user(user_id)
-    except ValueError:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
+@app.get("/users", response_model=List[UserResponse], status_code=status.HTTP_200_OK)
+def list_users() -> List[dict]:
+    """Return all users."""
+    return list(_users_db)
 
 
-@app.post("/users", response_model=User, status_code=status.HTTP_201_CREATED)
-def create_user(payload: UserCreate):
-    """BUG 2 FIXED: rejects empty/whitespace names via service validation."""
-    try:
-        return service.create_user(payload)
-    except ValueError as e:
-        raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_CONTENT, detail=str(e))
+@app.get(
+    "/users/{user_id}",
+    response_model=UserResponse,
+    status_code=status.HTTP_200_OK,
+)
+def get_user(user_id: int) -> dict:
+    """Return a single user by id. Returns 404 if not found."""
+    return _find_user(user_id)
 
 
-@app.put("/users/{user_id}", response_model=User)
-def update_user(user_id: str, payload: UserUpdate):
-    """BUG 3 FIXED: returns 404 if user doesn't exist."""
-    try:
-        return service.update_user(user_id, payload)
-    except ValueError as e:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e))
+@app.post(
+    "/users",
+    response_model=UserResponse,
+    status_code=status.HTTP_201_CREATED,
+)
+def create_user(body: UserCreate) -> dict:
+    """Create a new user. Rejects empty names via Pydantic validation."""
+    global _next_id  # noqa: PLW0603
+    user = {
+        "id": _next_id,
+        "name": body.name.strip(),
+        "email": body.email,
+        "age": body.age,
+    }
+    _users_db.append(user)
+    _next_id += 1
+    return user
 
 
-@app.delete("/users/{user_id}", status_code=status.HTTP_204_NO_CONTENT)
-def delete_user(user_id: str):
-    if not service.delete_user(user_id):
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
+@app.put(
+    "/users/{user_id}",
+    response_model=UserResponse,
+    status_code=status.HTTP_200_OK,
+)
+def update_user(user_id: int, body: UserUpdate) -> dict:
+    """Update an existing user (partial update). Raises 404 if user not found."""
+    user = _find_user(user_id)
+    if body.name is not None:
+        user["name"] = body.name.strip()
+    if body.email is not None:
+        user["email"] = body.email
+    if body.age is not None:
+        user["age"] = body.age
+    return user
+
+
+@app.delete(
+    "/users/{user_id}",
+    status_code=status.HTTP_204_NO_CONTENT,
+)
+def delete_user(user_id: int) -> None:
+    """Delete a user by id. Raises 404 if not found."""
+    user = _find_user(user_id)
+    _users_db.remove(user)
+    return None
