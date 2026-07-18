@@ -1,0 +1,69 @@
+# ──────────────────────────────────────────────────────────────
+# .dockerignore
+# ──────────────────────────────────────────────────────────────
+# Prevent secrets & local config from leaking into the build
+# context — keeps the build small and the image clean.
+#
+# Recommended by Docker best practices & the OWASP Docker
+# Security Cheat Sheet.
+
+# Version control
+.git/
+.gitignore
+.gitattributes
+
+# Local Python artifacts
+__pycache__/
+*.py[cod]
+*$py.class
+*.egg-info/
+*.egg
+dist/
+build/
+*.whl
+
+# Virtual environments
+.venv/
+venv/
+.env/
+env/
+
+# IDE / editor
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS metadata
+.DS_Store
+Thumbs.db
+
+# Local config that should never ship
+.env
+.env.*
+*.local
+docker-compose*.yml
+docker-compose*.yaml
+
+# Logs & runtime data
+*.log
+*.pid
+*.sqlite
+*.db
+
+# Test & quality — not needed at runtime
+.cache/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+htmlcov/
+coverage/
+.coverage*
+*.coverage.*
+node_modules/
+
+# Docs
+docs/
+*.md
+!README.md
