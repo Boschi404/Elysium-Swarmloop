@@ -1,0 +1,239 @@
+"""Elysium-Bench — Baseline NO SKILL (Hermes base agent)
+Esegue Quick + Medium + Lungo in serie SENZA elysium-swarmloop."""
+
+import json, re, shutil, subprocess, sys, time, textwrap
+from pathlib import Path
+
+BENCH_DIR = Path(__file__).parent.resolve()
+sys.path.insert(0, str(BENCH_DIR))
+sys.path.insert(0, str(Path.home() / "Elysium-Bench"))  # fallback per elysium_bench
+
+from elysium_bench.scoring import ScoringEngine, ScoreBreakdown
+from elysium_bench.task_registry import TaskRegistry
+
+RISULTATI_DIR = BENCH_DIR / "risultati"
+TASKS_DIR = Path.home() / "Elysium-Bench" / "tasks"
+WORKSPACES_DIR = BENCH_DIR / "workspaces"
+HERMES_TIMEOUT = 180
+WEIGHTS = {"correctness": 40, "completeness": 25, "efficiency": 15, "robustness": 10, "clarity": 10}
+TAG = "baseline-no-skill"
+
+def fmt(v): return f"{v:.1f}"
+
+def clean_ws():
+    if WORKSPACES_DIR.exists(): shutil.rmtree(WORKSPACES_DIR)
+    WORKSPACES_DIR.mkdir(parents=True)
+
+def create_ws(task_dir, task_id, tag):
+    ws = WORKSPACES_DIR / f"{task_id}_{tag}"
+    if ws.exists(): shutil.rmtree(ws)
+    ws.mkdir(parents=True); (ws / "workspace").mkdir()
+    for sd in ["tests", "repo"]:
+        src = task_dir / sd
+        if src.exists():
+            dst = ws / "workspace" / sd
+            if sd == "repo":
+                for f in src.iterdir(): shutil.copy2(f, ws / "workspace")
+            else:
+                shutil.copytree(src, dst, dirs_exist_ok=True)
+    return ws
+
+def solve_task(task, workspace):
+    ws_path = workspace / "workspace"
+    prompt = (
+        f"TASK: {task.id} - {task.name}\n"
+        f"DESCRIPTION: {task.description}\n"
+        f"WORKSPACE: {ws_path}\n\n"
+        f"INSTRUCTIONS:\n"
+        f"1. Solve this task completely\n"
+        f"2. Write ALL solution files to {ws_path}/\n"
+        f"3. Ensure tests in {ws_path / 'tests'}/ pass (if they exist)\n"
+        f"4. Return a brief summary"
+    )
+    start = time.time()
+    try:
+        r = subprocess.run(["hermes","chat","-q",prompt,"-Q"],
+                          capture_output=True, text=True, timeout=HERMES_TIMEOUT)
+        elapsed = time.time() - start
+        files = sorted(f.relative_to(ws_path).as_posix() for f in ws_path.rglob("*") if f.is_file())
+        return {"elapsed": round(elapsed, 1), "files": files, "mode": "hermes_base"}
+    except subprocess.TimeoutExpired:
+        return {"elapsed": round(time.time()-start,1), "files": [], "mode": "timeout"}
+
+def score_task(task_dir, workspace):
+    try:
+        return ScoringEngine(task_dir=task_dir, solution_dir=workspace/"workspace", weights=WEIGHTS).evaluate()
+    except Exception as e:
+        s = ScoreBreakdown(task_type="code")
+        s.gaps.append(str(e))
+        return s
+
+def run_tests(workspace):
+    ws = workspace / "workspace"
+    td = ws / "tests"
+    if not td.exists(): return {"passed":0,"total":0,"output":"No tests dir"}
+    try:
+        r = subprocess.run([sys.executable,"-m","pytest",str(td),"-q","--tb=short"],
+                          capture_output=True,text=True,timeout=60,cwd=str(ws))
+        mp = re.search(r"(\d+)\s+passed", r.stdout)
+        mf = re.search(r"(\d+)\s+failed", r.stdout)
+        passed = int(mp.group(1)) if mp else 0
+        failed = int(mf.group(1)) if mf else 0
+        if r.returncode == 0 and mp: passed = int(mp.group(1)); failed = 0
+        return {"passed":passed,"total":passed+failed,"output":r.stdout}
+    except: return {"passed":0,"total":0,"output":"Test error"}
+
+def run_benchmark(name, categories, total_loops):
+    print(f"\n{'═'*60}")
+    print(f"  🏁 {name} ({TAG})")
+    print(f"{'═'*60}")
+    
+    cfg = {"categories":[{"id":c,"name":c,"description":"","weight":1.0} for c in categories]}
+    registry = TaskRegistry(TASKS_DIR, cfg)
+    cats = registry.discover()
+    
+    task_map = {}
+    for cat in cats:
+        tasks = {}
+        for t in cat.tasks:
+            m = re.match(r"T(\d+)", t.id)
+            if m: tasks[int(m.group(1))] = t
+        task_map[cat.id] = tasks
+    
+    clean_ws()
+    all_results = {"timestamp":time.strftime("%Y-%m-%dT%H:%M:%S"),"categories":categories,
+                   "total_loops":total_loops,"skill":"none (baseline)","loops":{}}
+    start_time = time.time()
+    
+    for phase in range(1, total_loops + 2):
+        is_retest = phase == total_loops + 1
+        task_idx = 1 if is_retest else phase
+        label = "LOOP 1" if phase == 1 else ("RE-TEST" if is_retest else f"LOOP {phase}")
+        print(f"\n  📍 {label}")
+        phase_scores = {}
+        
+        for cat_id in categories:
+            t = task_map[cat_id].get(task_idx)
+            if not t: continue
+            print(f"    {t.id}: {t.name}...", end=" ", flush=True)
+            ws = create_ws(t.task_dir, t.id, f"p{phase}")
+            result = solve_task(t, ws)
+            
+            if result["mode"] == "timeout":
+                print(f"⏰ TIMEOUT")
+                sd = {"correctness":0,"completeness":0,"efficiency":0,"robustness":0,"clarity":0,
+                      "total":0,"passed":False,"task_type":t.task_type,"gaps":["Timeout"],
+                      "tests":{"passed":0,"total":0,"output":"Timeout"},"files":[],"mode":"timeout"}
+            else:
+                score = score_task(t.task_dir, ws)
+                tests = run_tests(ws)
+                sd = score.to_dict()
+                sd["total"] = round(score.total, 1)
+                sd["tests"] = tests
+                sd["files"] = result["files"]
+                icon = "✅" if score.passed else "❌"
+                ts = f"{tests['passed']}/{tests['total']}" if tests['total']>0 else "no-tests"
+                print(f"{fmt(score.total)}/100 {icon} [{ts}] ⏱{result['elapsed']}s")
+            
+            sd["duration_s"] = result["elapsed"]
+            sd["mode"] = result["mode"]
+            phase_scores[t.id] = sd
+        
+        all_results["loops"]["retest" if is_retest else f"loop{phase}"] = phase_scores
+    
+    total_elapsed = time.time() - start_time
+    cats_data = {}
+    for cat_id in categories:
+        t1 = f"T01_{cat_id}"
+        l1 = all_results["loops"]["loop1"].get(t1,{}).get("total",0)
+        rt = all_results["loops"]["retest"].get(t1,{}).get("total",0)
+        cats_data[cat_id] = {"loop1": l1, "retest": rt, "delta": rt-l1}
+    
+    l1_avg = sum(cd["loop1"] for cd in cats_data.values())/max(len(cats_data),1)
+    rt_avg = sum(cd["retest"] for cd in cats_data.values())/max(len(cats_data),1)
+    print(f"\n  📊 Loop 1: {l1_avg:.1f} | Re-Test: {rt_avg:.1f} | Δ: {rt_avg-l1_avg:+.1f} | ⏱{total_elapsed/60:.1f}min")
+    
+    report = {"benchmark":f"{name} ({TAG})","skill":"none (baseline)",
+              "categories":categories,"total_loops":total_loops,
+              "per_category":cats_data,"avg_loop1":round(l1_avg,1),
+              "avg_retest":round(rt_avg,1),"avg_delta":round(rt_avg-l1_avg,1),
+              "duration_minutes":round(total_elapsed/60,1),"loops":all_results["loops"]}
+    
+    RISULTATI_DIR.mkdir(parents=True, exist_ok=True)
+    ts = time.strftime("%Y%m%d_%H%M%S")
+    slug = name.lower()
+    jp = RISULTATI_DIR / f"{slug}_{TAG}_{ts}.json"
+    jp.write_text(json.dumps(report, indent=2, default=str), encoding="utf-8")
+    
+    md = [
+        f"# {name} (NO Skill - Baseline)",
+        f"**Durata:** {total_elapsed/60:.1f} min | **Categorie:** {', '.join(categories)}",
+        f"| Categoria | Loop 1 | Re-Test | Δ |", f"|---|---|---:|:---:|",
+    ]
+    for cid, cd in cats_data.items():
+        md.append(f"| {cid} | {cd['loop1']:.1f} | {cd['retest']:.1f} | {cd['delta']:+.1f} |")
+    md.append(f"\n**Loop 1 Avg:** {l1_avg:.1f} | **Re-Test Avg:** {rt_avg:.1f} | **Δ:** {rt_avg-l1_avg:+.1f}")
+    mp = RISULTATI_DIR / f"{slug}_{TAG}_{ts}.md"
+    mp.write_text("\n".join(md), encoding="utf-8")
+    print(f"    📁 {jp.name}")
+    clean_ws()
+    return report, cats_data
+
+# ═══════════ MAIN ═══════════
+print("\n" + "┌" + "─"*61 + "┐")
+print("│ 🚀 BASELINE: Hermes base agent SENZA elysium-swarmloop skill  │")
+print("│ Quick + Medium + Lungo in serie                              │")
+print("└" + "─"*61 + "┘")
+
+start = time.time()
+
+# 1. QUICK (1 cat × 2 loop)
+r1, d1 = run_benchmark("Quick", ["api_development"], 2)
+
+# 2. MEDIUM (4 cat × 3 loop)
+r2, d2 = run_benchmark("Medium", ["api_development","bug_fixing","algorithm_implementation","data_analysis"], 3)
+
+# 3. LUNGO (5 cat × 4 loop)
+r3, d3 = run_benchmark("Lungo", ["api_development","bug_fixing","algorithm_implementation","logical_deduction","code_review"], 4)
+
+# ─── CONFRONTO CON SKILL ───
+total = time.time() - start
+
+# Carica dati con skill (da Elysium-Bench)
+def load_skill_avg(pattern):
+    src = Path.home() / "Elysium-Bench" / "risultati"
+    files = sorted(src.glob(pattern))
+    if not files:
+        src = RISULTATI_DIR
+        files = sorted(src.glob(pattern))
+    if not files:
+        return None
+    with open(files[-1]) as f:
+        data = json.load(f)
+    if "tasks" in data:  # Quick format
+        return (data['tasks']['loop1']['score'] + data['tasks']['retest']['score']) / 2
+    return (data.get('avg_loop1',0) + data.get('avg_retest',0)) / 2
+
+skill_data = [
+    ("Quick", load_skill_avg("quick_results_*.json"), r1),
+    ("Medium", load_skill_avg("medium_results_*.json"), r2),
+    ("Lungo", load_skill_avg("risultati_lungo_*.json"), r3),
+]
+
+print(f"\n{'═'*60}")
+print(f"  📊 CONFRONTO: CON SKILL vs NO SKILL")
+print(f"{'═'*60}")
+print(f"\n  {'Benchmark':<12} {'NO Skill':<12} {'CON Skill':<12} {'Δ':<12} {'Miglioramento':<15}")
+print(f"  {'─'*60}")
+
+for name, sv, r in skill_data:
+    nsa = (r['avg_loop1'] + r['avg_retest']) / 2
+    if sv:
+        delta = sv - nsa
+        pct = (delta / nsa * 100) if nsa > 0 else 0
+        print(f"  {name:<12} {nsa:<12.1f} {sv:<12.1f} {delta:>+6.1f} {'📈 +'+str(round(pct))+'%' if pct>0 else '📉 '+str(round(pct))+'%'}")
+    else:
+        print(f"  {name:<12} {nsa:<12.1f} {'N/D':<12} {'?':>6} {'N/D':<15}")
+
+print(f"\n  ⏱  Durata totale baseline: {total/60:.1f} min")
+print(f"  ✅ Benchmark NO SKILL completati! Risultati in risultati/\n")
