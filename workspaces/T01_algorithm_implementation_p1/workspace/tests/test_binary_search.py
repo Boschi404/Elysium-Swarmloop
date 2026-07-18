@@ -1,175 +1,204 @@
-"""Tests for binary_search implementation.
-
-Covers all specified cases:
-  - exact match found
-  - element not found
-  - empty list
-  - single element
-  - duplicate elements
-  - very large lists (performance)
-"""
-
+"""Tests for binary search implementation — covers all required edge cases."""
 import sys
-import time
+import os
 import math
+import time
 
-from binary_search import binary_search
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
-
-# ── 1. Exact match found ────────────────────────────────────────────────
-
-def test_exact_match_at_start():
-    assert binary_search([1, 3, 5, 7, 9], 1) == 0
-
-
-def test_exact_match_at_middle():
-    assert binary_search([1, 3, 5, 7, 9], 5) == 2
+from binary_search import (
+    binary_search,
+    binary_search_recursive,
+    find_first_occurrence,
+    find_last_occurrence,
+)
 
 
-def test_exact_match_at_end():
-    assert binary_search([1, 3, 5, 7, 9], 9) == 4
+# ── Standard iterative binary_search ──────────────────────────────────────
 
 
-def test_exact_match_even_length():
-    assert binary_search([2, 4, 6, 8], 6) == 2
+def test_exact_match():
+    """Target present in the middle of the list."""
+    arr = [1, 3, 5, 7, 9, 11, 13]
+    assert binary_search(arr, 7) == 3
 
 
-def test_exact_match_negative_numbers():
-    assert binary_search([-10, -5, 0, 5, 10], -5) == 1
+def test_element_not_found():
+    """Target not in the list → -1."""
+    arr = [1, 3, 5, 7, 9, 11, 13]
+    assert binary_search(arr, 4) == -1
 
-
-def test_exact_match_floats():
-    assert binary_search([1.1, 2.2, 3.3, 4.4], 3.3) == 2
-
-
-# ── 2. Element not found ────────────────────────────────────────────────
-
-def test_not_found_value_below_all():
-    assert binary_search([10, 20, 30, 40], 5) == -1
-
-
-def test_not_found_value_above_all():
-    assert binary_search([10, 20, 30, 40], 50) == -1
-
-
-def test_not_found_value_between_elements():
-    assert binary_search([10, 20, 30, 40], 25) == -1
-
-
-# ── 3. Empty list ───────────────────────────────────────────────────────
 
 def test_empty_list():
+    """Empty list → -1."""
     assert binary_search([], 42) == -1
 
 
-def test_empty_list_any_target():
-    assert binary_search([], -1) == -1
-    assert binary_search([], 0) == -1
-    assert binary_search([], 999) == -1
+def test_single_element_found():
+    """Single-element list, target matches."""
+    assert binary_search([42], 42) == 0
 
 
-# ── 4. Single element ───────────────────────────────────────────────────
-
-def test_single_element_match():
-    assert binary_search([7], 7) == 0
-
-
-def test_single_element_no_match():
-    assert binary_search([7], 3) == -1
+def test_single_element_not_found():
+    """Single-element list, target does not match."""
+    assert binary_search([42], 1) == -1
 
 
-def test_single_element_no_match_above():
-    assert binary_search([7], 10) == -1
+def test_target_at_start():
+    """Target is the first element."""
+    arr = [2, 4, 6, 8, 10]
+    assert binary_search(arr, 2) == 0
 
 
-# ── 5. Duplicate elements ───────────────────────────────────────────────
-
-def test_duplicates_target_present():
-    """Any valid index for the duplicated value is acceptable."""
-    idx = binary_search([1, 2, 2, 2, 3], 2)
-    assert idx in (1, 2, 3), f"Expected index 1, 2, or 3, got {idx}"
+def test_target_at_end():
+    """Target is the last element."""
+    arr = [2, 4, 6, 8, 10]
+    assert binary_search(arr, 10) == 4
 
 
-def test_duplicates_all_same():
-    idx = binary_search([5, 5, 5, 5], 5)
-    assert 0 <= idx <= 3, f"Expected 0-3, got {idx}"
+def test_negative_numbers():
+    """Works with negative values."""
+    arr = [-10, -5, -1, 0, 3, 8]
+    assert binary_search(arr, -5) == 1
+    assert binary_search(arr, -10) == 0
+    assert binary_search(arr, 8) == 5
+    assert binary_search(arr, -2) == -1
 
 
-def test_duplicates_target_not_present():
-    assert binary_search([1, 1, 1, 3, 3], 2) == -1
+def test_duplicates_returns_any():
+    """With duplicates, standard binary search returns an arbitrary valid index."""
+    arr = [1, 2, 2, 2, 3, 4]
+    idx = binary_search(arr, 2)
+    # must be one of the valid positions
+    assert idx in {1, 2, 3}, f"Expected one of [1,2,3], got {idx}"
 
-
-# ── 6. Very large list (performance test) ──────────────────────────────
 
 def test_large_list_performance():
-    """Binary search on 10⁶ elements must complete in < 1 second
-    and return the correct index (O(log n) ≈ 20 iterations)."""
+    """Very large list (1M elements) must complete in < 0.5 seconds."""
     n = 1_000_000
-    large = list(range(n))
-    target = n - 1  # worst-case: last element
+    arr = list(range(n))
+    target = 876_543
 
     start = time.perf_counter()
-    idx = binary_search(large, target)
+    idx = binary_search(arr, target)
     elapsed = time.perf_counter() - start
 
     assert idx == target, f"Expected {target}, got {idx}"
-    assert elapsed < 1.0, f"Too slow: {elapsed:.3f}s (should be ≪ 1s)"
+    assert elapsed < 0.5, f"Took {elapsed:.3f}s, expected < 0.5s"
+
+
+def test_large_list_first_element():
+    """First element in large list."""
+    arr = list(range(1_000_000))
+    assert binary_search(arr, 0) == 0
+
+
+def test_large_list_last_element():
+    """Last element in large list."""
+    arr = list(range(1_000_000))
+    assert binary_search(arr, 999_999) == 999_999
 
 
 def test_large_list_not_found():
-    n = 1_000_000
-    large = list(range(n))
+    """Target beyond the large list bounds."""
+    arr = list(range(1_000_000))
+    assert binary_search(arr, -1) == -1
+    assert binary_search(arr, 1_500_000) == -1
+
+
+# ── Recursive variant ─────────────────────────────────────────────────────
+
+
+def test_recursive_exact_match():
+    assert binary_search_recursive([1, 3, 5, 7, 9], 5) == 2
+
+
+def test_recursive_not_found():
+    assert binary_search_recursive([1, 3, 5, 7, 9], 6) == -1
+
+
+def test_recursive_empty():
+    assert binary_search_recursive([], 1) == -1
+
+
+def test_recursive_single():
+    assert binary_search_recursive([99], 99) == 0
+    assert binary_search_recursive([99], 1) == -1
+
+
+# ── First / last occurrence (duplicates) ──────────────────────────────────
+
+
+def test_first_occurrence():
+    arr = [1, 2, 2, 2, 3, 4, 5]
+    assert find_first_occurrence(arr, 2) == 1
+
+
+def test_last_occurrence():
+    arr = [1, 2, 2, 2, 3, 4, 5]
+    assert find_last_occurrence(arr, 2) == 3
+
+
+def test_first_last_single_occurrence():
+    """No duplicates → first == last."""
+    arr = [1, 3, 5, 7]
+    assert find_first_occurrence(arr, 5) == 2
+    assert find_last_occurrence(arr, 5) == 2
+
+
+def test_first_not_found():
+    assert find_first_occurrence([1, 2, 3], 4) == -1
+
+
+def test_last_not_found():
+    assert find_last_occurrence([1, 2, 3], 4) == -1
+
+
+# ── Edge: all elements identical ──────────────────────────────────────────
+
+
+def test_all_identical():
+    arr = [7, 7, 7, 7, 7]
+    assert binary_search(arr, 7) in {0, 1, 2, 3, 4}
+    assert find_first_occurrence(arr, 7) == 0
+    assert find_last_occurrence(arr, 7) == 4
+
+
+# ── Edge: strings ─────────────────────────────────────────────────────────
+
+
+def test_strings():
+    arr = sorted(["apple", "banana", "cherry", "date", "elderberry"])
+    assert binary_search(arr, "cherry") == 2
+    assert binary_search(arr, "fig") == -1
+
+
+# ── O(log n) time complexity verification ────────────────────────────────
+
+
+def test_log_n_complexity():
+    """Verify that the algorithm runs in O(log n) by comparing
+    two large lists differing by a factor of 1000 in size.
+    """
+    n_small = 10_000
+    n_large = 10_000_000
+    target = n_large // 2
+
+    arr_small = list(range(n_small))
+    arr_large = list(range(n_large))
+
+    # The ratio of step counts should be ~log(n_large)/log(n_small) ≈ 2
+    # Measure total time; with O(log n) the large list is ~2× slower, not 1000×
     start = time.perf_counter()
-    idx = binary_search(large, -42)
-    elapsed = time.perf_counter() - start
-    assert idx == -1
-    assert elapsed < 1.0, f"Too slow: {elapsed:.3f}s"
+    binary_search(arr_small, target)
+    small_time = time.perf_counter() - start
 
+    start = time.perf_counter()
+    binary_search(arr_large, target)
+    large_time = time.perf_counter() - start
 
-# ── 7. Edge / weird inputs ──────────────────────────────────────────────
-
-def test_none_list():
-    """binary_search should handle None gracefully (treat as empty)."""
-    # We document that None is treated like an empty list.
-    assert binary_search(None, 1) == -1
-
-
-def test_large_numbers():
-    arr = [-10**12, 0, 10**12]
-    assert binary_search(arr, -10**12) == 0
-    assert binary_search(arr, 0) == 1
-    assert binary_search(arr, 10**12) == 2
-
-
-def test_alternating_negative_positive():
-    arr = [-99, -33, -1, 0, 2, 44, 100, 256]
-    for i, v in enumerate(arr):
-        assert binary_search(arr, v) == i
-    assert binary_search(arr, 999) == -1
-
-
-# ── 8. O(log n) verification ────────────────────────────────────────────
-
-def test_log_n_iterations():
-    """Verify the algorithm makes at most log₂(n)+1 comparisons.
-    We monkey-patch by counting via a wrapper approach:
-    Use a controlled-sized list to ensure bounds."""
-    import math
-    for n in [1, 2, 10, 100, 1000]:
-        arr = list(range(n))
-        # The worst-case number of iterations is floor(log₂ n) + 1
-        max_iter = math.floor(math.log2(n)) + 1 if n > 0 else 1
-        # Just verify the function returns correct results
-        # (direct counting would need proxy objects)
-        assert binary_search(arr, 0) == 0, f"Failed at n={n}"
-        assert binary_search(arr, n - 1) == n - 1, f"Failed at n={n}"
-        assert binary_search(arr, n + 1) == -1, f"Failed at n={n}"
-        # And the search is still fast
-        assert binary_search(arr, n // 2) in range(n), f"Failed at n={n}"
-
-
-# ── Run everything if called directly ──────────────────────────────────
-
-if __name__ == "__main__":
-    import pytest
-    sys.exit(pytest.main([__file__, "-v"]))
+    ratio = large_time / (small_time + 1e-12)
+    assert ratio < 50, (
+        f"Time ratio large/small = {ratio:.1f}, expected < 50 "
+        f"(O(log n) should grow ~2×, not 1000×)"
+    )

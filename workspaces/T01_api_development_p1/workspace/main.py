@@ -1,48 +1,79 @@
 """
-T01_api_development: User CRUD API
-FastAPI REST API for user management with in-memory storage.
+FastAPI User Management CRUD API.
+
+Endpoints:
+    GET    /users       — List all users
+    GET    /users/{id}  — Get a single user by ID
+    POST   /users       — Create a new user
+    PUT    /users/{id}  — Update an existing user
+    DELETE /users/{id}  — Delete a user
+
+All data is stored in memory (no database required).
+Input validation: email format, name length > 2, age > 0.
 """
 
+import uuid
+from typing import Optional
+
 from fastapi import FastAPI, HTTPException, status
-from pydantic import BaseModel, Field, EmailStr, field_validator
-from typing import List
-from uuid import uuid4, UUID
+from pydantic import BaseModel, EmailStr, Field, field_validator
 
-app = FastAPI(title="User CRUD API", version="1.0.0")
+# ---------------------------------------------------------------------------
+# App initialisation
+# ---------------------------------------------------------------------------
 
-# ── In-memory storage ──────────────────────────────────────────────────────
+app = FastAPI(
+    title="User Management API",
+    description="Simple in-memory CRUD for users",
+    version="1.0.0",
+)
 
-_users_db: dict[str, "User"] = {}
-
-# ── Pydantic models ────────────────────────────────────────────────────────
-
+# ---------------------------------------------------------------------------
+# Models
+# ---------------------------------------------------------------------------
 
 class UserCreate(BaseModel):
-    """Input model for creating a user."""
+    """Request body for POST /users and PUT /users/{id}."""
 
     name: str = Field(..., min_length=3, description="User name (min 3 chars)")
     email: EmailStr = Field(..., description="Valid email address")
-    age: int = Field(..., gt=0, description="Age must be positive")
+    age: int = Field(..., ge=1, description="User age (> 0)")
 
     @field_validator("name")
     @classmethod
-    def name_must_be_longer_than_two(cls, v: str) -> str:
+    def name_must_be_valid(cls, v: str) -> str:
         stripped = v.strip()
         if len(stripped) <= 2:
             raise ValueError("name must be longer than 2 characters")
         return stripped
 
+    @field_validator("age")
+    @classmethod
+    def age_must_be_positive(cls, v: int) -> int:
+        if v <= 0:
+            raise ValueError("age must be greater than 0")
+        return v
+
+
+class UserOut(BaseModel):
+    """Response body for a single user (includes auto-generated id)."""
+
+    id: str
+    name: str
+    email: str
+    age: int
+
 
 class UserUpdate(BaseModel):
-    """Input model for updating a user (all fields optional)."""
+    """Optional fields for PUT — reuses the same validation as create."""
 
-    name: str | None = Field(None, min_length=3, description="User name (min 3 chars)")
-    email: EmailStr | None = Field(None, description="Valid email address")
-    age: int | None = Field(None, gt=0, description="Age must be positive")
+    name: Optional[str] = Field(None, min_length=3)
+    email: Optional[EmailStr] = None
+    age: Optional[int] = Field(None, ge=1)
 
     @field_validator("name")
     @classmethod
-    def name_must_be_longer_than_two(cls, v: str | None) -> str | None:
+    def name_must_be_valid(cls, v: Optional[str]) -> Optional[str]:
         if v is not None:
             stripped = v.strip()
             if len(stripped) <= 2:
@@ -51,70 +82,97 @@ class UserUpdate(BaseModel):
         return v
 
 
-class User(BaseModel):
-    """Output model representing a stored user."""
+# ---------------------------------------------------------------------------
+# In-memory store
+# ---------------------------------------------------------------------------
 
-    id: str
-    name: str
-    email: str
-    age: int
+_db: dict[str, dict] = {}
 
 
-# ── Helper ─────────────────────────────────────────────────────────────────
+def _user_to_out(record: dict) -> UserOut:
+    return UserOut(
+        id=record["id"],
+        name=record["name"],
+        email=record["email"],
+        age=record["age"],
+    )
 
 
-def _get_user_or_404(user_id: str) -> User:
-    """Retrieve a user by id or raise 404."""
-    user = _users_db.get(user_id)
-    if user is None:
+# ---------------------------------------------------------------------------
+# Routes
+# ---------------------------------------------------------------------------
+
+
+@app.get("/users", response_model=list[UserOut], status_code=status.HTTP_200_OK)
+def list_users():
+    """Return every stored user."""
+    return [_user_to_out(r) for r in _db.values()]
+
+
+@app.get(
+    "/users/{user_id}",
+    response_model=UserOut,
+    status_code=status.HTTP_200_OK,
+)
+def get_user(user_id: str):
+    """Return a single user by its UUID."""
+    record = _db.get(user_id)
+    if record is None:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"User with id '{user_id}' not found",
+            detail=f"User {user_id} not found",
         )
-    return user
+    return _user_to_out(record)
 
 
-# ── CRUD endpoints ─────────────────────────────────────────────────────────
+@app.post(
+    "/users",
+    response_model=UserOut,
+    status_code=status.HTTP_201_CREATED,
+)
+def create_user(body: UserCreate):
+    """Create a new user and return it."""
+    user_id = str(uuid.uuid4())
+    record = {
+        "id": user_id,
+        "name": body.name,
+        "email": body.email,
+        "age": body.age,
+    }
+    _db[user_id] = record
+    return _user_to_out(record)
 
 
-@app.get("/users", response_model=List[User], status_code=status.HTTP_200_OK)
-def list_users() -> List[User]:
-    """Return all stored users."""
-    return list(_users_db.values())
+@app.put(
+    "/users/{user_id}",
+    response_model=UserOut,
+    status_code=status.HTTP_200_OK,
+)
+def update_user(user_id: str, body: UserUpdate):
+    """Update an existing user (partial or full). Returns the updated user."""
+    record = _db.get(user_id)
+    if record is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"User {user_id} not found",
+        )
+
+    if body.name is not None:
+        record["name"] = body.name
+    if body.email is not None:
+        record["email"] = body.email
+    if body.age is not None:
+        record["age"] = body.age
+
+    _db[user_id] = record
+    return _user_to_out(record)
 
 
-@app.get("/users/{user_id}", response_model=User, status_code=status.HTTP_200_OK)
-def get_user(user_id: str) -> User:
-    """Return a single user by id."""
-    return _get_user_or_404(user_id)
-
-
-@app.post("/users", response_model=User, status_code=status.HTTP_201_CREATED)
-def create_user(body: UserCreate) -> User:
-    """Create a new user."""
-    user_id = str(uuid4())
-    user = User(id=user_id, name=body.name, email=body.email, age=body.age)
-    _users_db[user_id] = user
-    return user
-
-
-@app.put("/users/{user_id}", response_model=User, status_code=status.HTTP_200_OK)
-def update_user(user_id: str, body: UserUpdate) -> User:
-    """Update an existing user by id (partial update)."""
-    existing = _get_user_or_404(user_id)
-    updated_data = existing.model_copy(
-        update={
-            "name": body.name if body.name is not None else existing.name,
-            "email": body.email if body.email is not None else existing.email,
-            "age": body.age if body.age is not None else existing.age,
-        }
-    )
-    _users_db[user_id] = updated_data
-    return updated_data
-
-
-@app.delete("/users/{user_id}", status_code=status.HTTP_204_NO_CONTENT)
-def delete_user(user_id: str) -> None:
-    """Delete a user by id."""
-    _get_user_or_404(user_id)
-    del _users_db[user_id]
+@app.delete(
+    "/users/{user_id}",
+    status_code=status.HTTP_204_NO_CONTENT,
+)
+def delete_user(user_id: str):
+    """Delete a user. Returns 204 regardless of whether it existed."""
+    _db.pop(user_id, None)
+    return None

@@ -1,53 +1,97 @@
 """Binary search implementation on a sorted list.
 
-Provides:
-    binary_search(arr, target) -> int
-        Returns the index of target in arr, or -1 if not found.
-    Time complexity: O(log n)
-    Space complexity: O(1)
-
-Handles:
-    - exact match found
-    - element not found
-    - empty list
-    - single element
-    - duplicate elements (returns any valid index)
-    - very large lists (performance)
+Time complexity: O(log n)
+Space complexity: O(1) iterative, O(log n) recursive
 """
 
 
-def binary_search(arr: list, target: int | float) -> int:
+def binary_search(arr: list, target: int) -> int:
     """Perform binary search on a sorted list.
 
-    Finds the index of `target` in `arr` using the binary search algorithm.
-    `arr` must be sorted in ascending order.
-
     Args:
-        arr: Sorted list of comparable elements (e.g., ints or floats).
-        target: The value to locate.
+        arr: Sorted list of elements (ascending order).
+        target: Element to search for.
 
     Returns:
-        Index of `target` in `arr`, or -1 if not found.
-
-    Raises:
-        ValueError: If `arr` is not sorted in ascending order.
+        Index of the target if found, otherwise -1.
     """
-    # Edge case: empty list
-    if not arr:
-        return -1
+    low, high = 0, len(arr) - 1
 
-    left, right = 0, len(arr) - 1
-
-    while left <= right:
-        mid = (left + right) // 2
+    while low <= high:
+        mid = low + (high - low) // 2  # avoids overflow in other languages
         mid_val = arr[mid]
 
         if mid_val == target:
             return mid
         elif mid_val < target:
-            left = mid + 1
+            low = mid + 1
         else:
-            right = mid - 1
+            high = mid - 1
 
-    # Target not found
     return -1
+
+
+def binary_search_recursive(arr: list, target: int, low: int = None, high: int = None) -> int:
+    """Recursive binary search — convenience wrapper."""
+    if low is None:
+        low = 0
+    if high is None:
+        high = len(arr) - 1
+
+    if low > high:
+        return -1
+
+    mid = low + (high - low) // 2
+
+    if arr[mid] == target:
+        return mid
+    elif arr[mid] < target:
+        return binary_search_recursive(arr, target, mid + 1, high)
+    else:
+        return binary_search_recursive(arr, target, low, mid - 1)
+
+
+def find_first_occurrence(arr: list, target: int) -> int:
+    """Return the index of the FIRST occurrence of target in a sorted list
+    with duplicates, or -1 if not found.
+
+    Still O(log n) — continues left after finding a match.
+    """
+    low, high = 0, len(arr) - 1
+    result = -1
+
+    while low <= high:
+        mid = low + (high - low) // 2
+
+        if arr[mid] == target:
+            result = mid
+            high = mid - 1  # keep searching left
+        elif arr[mid] < target:
+            low = mid + 1
+        else:
+            high = mid - 1
+
+    return result
+
+
+def find_last_occurrence(arr: list, target: int) -> int:
+    """Return the index of the LAST occurrence of target in a sorted list
+    with duplicates, or -1 if not found.
+
+    Still O(log n) — continues right after finding a match.
+    """
+    low, high = 0, len(arr) - 1
+    result = -1
+
+    while low <= high:
+        mid = low + (high - low) // 2
+
+        if arr[mid] == target:
+            result = mid
+            low = mid + 1  # keep searching right
+        elif arr[mid] < target:
+            low = mid + 1
+        else:
+            high = mid - 1
+
+    return result

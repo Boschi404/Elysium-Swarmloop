@@ -1,46 +1,49 @@
-# T01_logical_deduction — Knights & Knaves Puzzle
+# Knights and Knaves — Solution
 
-## The Puzzle
+## Identificazione del problema
+Siamo su un'isola dove i **Knights** dicono sempre la verità e i **Knaves** mentono sempre.
+Dobbiamo determinare chi è cosa tra A e B, analizzando le loro affermazioni.
 
-On an island where **Knights always tell the truth** and **Knaves always lie**:
+## Dichiarazioni
+- **A dice**: "B è un Knave."
+- **B dice**: "Siamo entrambi Knights."
 
-- **A** says: *"B is a Knave."*
-- **B** says: *"We are both Knights."*
+## Analisi dei casi
 
-Determine who is a Knight and who is a Knave.
+### Caso 1: A = Knight, B = Knight
+- A dice "B è un Knave" → **falso** (B è Knight)
+- A è Knight → deve dire verità → ❌ **CONTRADDIZIONE**
+- **Impossibile.**
 
----
+### Caso 2: A = Knight, B = Knave ✅
+- A dice "B è un Knave" → **vero** (B è Knave)
+- A è Knight → dice verità → ✅ OK
+- B dice "Siamo entrambi Knights" → **falso** (nessuno è Knight)
+- B è Knave → mente → ✅ OK
+- **SOLUZIONE: A = Knight, B = Knave**
 
-## Solution: A = Knight, B = Knave
+### Caso 3: A = Knave, B = Knight
+- A dice "B è un Knave" → **falso** (B è Knight)
+- A è Knave → mente → ✅ OK
+- B dice "Siamo entrambi Knights" → **falso** (A è Knave)
+- B è Knight → deve dire verità → ❌ **CONTRADDIZIONE**
+- **Impossibile.**
 
-### Truth table of all 4 cases
+### Caso 4: A = Knave, B = Knave
+- A dice "B è un Knave" → **vero** (B è Knave)
+- A è Knave → deve mentire → ❌ **CONTRADDIZIONE**
+- **Impossibile.**
 
-| Case | A | B | A says "B is Knave" | B says "both Knights" | Result |
-|------|---|---|----------------------|------------------------|--------|
-| 1 | Knight | Knight | B is Knave → **false** ❌ (A would be lying) | both Knights → **true** ✓ | ❌ INCONSISTENT |
-| 2 | **Knight** | **Knave** | B is Knave → **true** ✓ | both Knights → **false** ✓ (correct lie by B) | ✅ **SOLUTION** |
-| 3 | Knave | Knight | B is Knave → **false** ✓ (correct lie by A) | both Knights → **true** ✓ but A=Knave makes this false | ❌ INCONSISTENT |
-| 4 | Knave | Knave | B is Knave → **true** — but A is Knave so it should be **false** | — | ❌ INCONSISTENT |
+## Conclusione
 
-### Step-by-step reasoning
+L'unica combinazione logicamente coerente è:
+- **A = Knight** (dice sempre la verità)
+- **B = Knave** (mente sempre)
 
-1. **Case 1 — A=Knight, B=Knight**: A (truthful) says "B is Knave" → B would have to be Knave, but B is Knight → **contradiction**.
+Spiegazione concisa: la dichiarazione di A è vera (B mente), quindi A è Knight. La dichiarazione di B è falsa (non sono entrambi Knights), quindi B mente — coerente per un Knave.
 
-2. **Case 2 — A=Knight, B=Knave**: A (truthful) says "B is Knave" → B is Knave, which is true ✓. B (liar) says "both Knights" → this is false (A=Knight, B=Knave) ✓. **All consistent.**
+## Edge case ed esempio
 
-3. **Case 3 — A=Knave, B=Knight**: A (liar) says "B is Knave" → this is false → B is Knight ✓. B (truthful) says "both Knights" → both must be Knights, but A is Knave → **contradiction**.
+**Edge case:** se entrambi fossero Knaves, la dichiarazione di A ("B è un Knave") sarebbe vera, ma un Knave non può dire la verità — questo edge case mostra come l'autoreferenzialità crei vincoli stringenti.
 
-4. **Case 4 — A=Knave, B=Knave**: A (liar) says "B is Knave" → this should be false → B must be Knight, but B is Knave → **contradiction** (fails immediately).
-
-### Conclusion
-
-> **A is a Knight, B is a Knave.** ✅
-
----
-
-## Verifying
-
-```
-A is Knight → "B is a Knave" is TRUE  → B is Knave ✓
-B is Knave  → "We are both Knights" is FALSE → (not both Knights) ✓
-```
+**Esempio analogo:** Se X dice "Y mentirà" e Y dice "X dice la verità", si crea un paradosso simile. Questo puzzle è un caso classico di logica proposizionale a due attori, dove una singola contraddizione elimina 3 dei 4 casi possibili.
