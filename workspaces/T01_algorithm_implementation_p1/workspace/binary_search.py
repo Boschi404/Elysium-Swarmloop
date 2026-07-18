@@ -3,83 +3,83 @@ Binary Search Implementation
 ============================
 Implements binary search on a sorted list with O(log n) time complexity.
 
-Edge cases handled:
-  - Exact match found      → returns index
-  - Element not found      → returns -1
-  - Empty list             → returns -1
-  - Single element         → correct match or -1
-  - Duplicate elements     → returns first matching index found
-  - Very large lists       → O(log n), tested via performance check
-  - None/invalid input     → returns -1
-
-Time complexity:  O(log n)
-Space complexity: O(1) — iterative, no recursion overhead
+Features:
+- Exact match finding
+- Element not found handling
+- Empty list safety
+- Single element support
+- Duplicate element handling (returns first occurrence)
+- Iterative approach (O(1) space, avoids recursion depth limits)
 """
 
+from typing import List, Optional
 
-def binary_search(arr: list, target) -> int:
+
+def binary_search(arr: List[int], target: int) -> int:
     """
-    Search for target in a sorted list using binary search.
+    Perform binary search on a sorted list to find the target element.
 
     Args:
-        arr: Sorted list of comparable elements (ascending order).
-        target: Element to search for.
+        arr: A sorted list of integers (ascending order).
+        target: The integer value to search for.
 
     Returns:
-        Index of target if found, -1 otherwise.
+        The index of the target if found, otherwise -1.
+
+    Time Complexity: O(log n)
+    Space Complexity: O(1)
+
+    Examples:
+        >>> binary_search([1, 2, 3, 4, 5], 3)
+        2
+        >>> binary_search([1, 2, 3, 4, 5], 6)
+        -1
+        >>> binary_search([], 1)
+        -1
+        >>> binary_search([1], 1)
+        0
     """
-    # Guard: invalid or empty input
-    if arr is None or len(arr) == 0:
+    # Edge case: empty list
+    if not arr:
         return -1
 
-    left: int = 0
-    right: int = len(arr) - 1
+    left, right = 0, len(arr) - 1
+    result = -1
 
     while left <= right:
-        # Calculate midpoint — avoids overflow in languages with fixed ints
-        mid: int = left + (right - left) // 2
-        mid_val = arr[mid]
+        mid = left + (right - left) // 2  # Avoids integer overflow
 
-        if mid_val == target:
-            return mid
-        elif mid_val < target:
-            left = mid + 1
-        else:
+        if arr[mid] == target:
+            # For duplicates, continue searching left for first occurrence
+            result = mid
             right = mid - 1
-
-    return -1
-
-
-def binary_search_first_occurrence(arr: list, target) -> int:
-    """
-    Return the index of the FIRST occurrence of target in a sorted list
-    that may contain duplicates.  Falls back to standard binary search
-    when duplicates are not a concern.
-
-    Args:
-        arr: Sorted list (ascending).
-        target: Element to find.
-
-    Returns:
-        Index of the first occurrence, or -1 if not found.
-    """
-    if arr is None or len(arr) == 0:
-        return -1
-
-    left: int = 0
-    right: int = len(arr) - 1
-    result: int = -1
-
-    while left <= right:
-        mid: int = left + (right - left) // 2
-        mid_val = arr[mid]
-
-        if mid_val == target:
-            result = mid          # record the match
-            right = mid - 1       # keep looking left for an earlier occurrence
-        elif mid_val < target:
+        elif arr[mid] < target:
             left = mid + 1
         else:
             right = mid - 1
 
     return result
+
+
+def binary_search_any(arr: List[int], target: int) -> int:
+    """
+    Standard binary search returning any occurrence (not necessarily the first).
+
+    Faster than first-occurrence variant for targets without duplicates.
+    """
+    if not arr:
+        return -1
+
+    left, right = 0, len(arr) - 1
+
+    while left <= right:
+        mid = left + (right - left) // 2
+
+        if arr[mid] == target:
+            return mid
+        elif arr[mid] < target:
+            left = mid + 1
+        else:
+            right = mid - 1
+
+    return -1
