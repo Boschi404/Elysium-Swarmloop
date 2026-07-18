@@ -1,0 +1,195 @@
+version: "3.9"
+
+# ──────────────────────────────────────────────────────
+# T02 — Docker Compose: Full Stack Configuration
+# FastAPI + PostgreSQL + Redis + Nginx + Certbot
+# Networks (frontend/backend), Volumes, Health Checks,
+# depends_on conditions, .env, restart policies
+# ──────────────────────────────────────────────────────
+
+x-logging: &default-logging
+  driver: "json-file"
+  options:
+    max-size: "10m"
+    max-file: "3"
+
+x-restart-policy: &restart-policy
+  restart: unless-stopped
+
+# ── Networks ──────────────────────────────────────────
+networks:
+  frontend:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.20.0.0/24
+  backend:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.21.0.0/24
+    internal: true  # no external access to backend services
+
+# ── Volumes ───────────────────────────────────────────
+volumes:
+  postgres_data:
+    driver: local
+    name: t02_postgres_data
+  redis_data:
+    driver: local
+    name: t02_redis_data
+  certbot_www:
+    driver: local
+    name: t02_certbot_www
+  certbot_conf:
+    driver: local
+    name: t02_certbot_conf
+  nginx_conf:
+    driver: local
+    name: t02_nginx_conf
+
+# ── Services ──────────────────────────────────────────
+services:
+
+  # ── PostgreSQL ──────────────────────────────────────
+  postgres:
+    <<: *restart-policy
+    image: postgres:16-alpine
+    container_name: t02-postgres
+    hostname: postgres
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-appdb}
+      POSTGRES_USER: ${POSTGRES_USER:-appuser}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?err — POSTGRES_PASSWORD is required}
+      PGDATA: /var/lib/postgresql/data/pgdata
+    env_file:
+      - .env
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - backend
+    ports:
+      - "127.0.0.1:5432:5432"   # host-local only
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-appuser} -d ${POSTGRES_DB:-appdb}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    logging: *default-logging
+
+  # ── Redis ───────────────────────────────────────────
+  redis:
+    <<: *restart-policy
+    image: redis:7-alpine
+    container_name: t02-redis
+    hostname: redis
+    command:
+      - redis-server
+      - --save 60 1
+      - --loglevel warning
+      - --requirepass ${REDIS_PASSWORD:?err — REDIS_PASSWORD is required}
+      - --appendonly yes
+    env_file:
+      - .env
+    volumes:
+      - redis_data:/data
+    networks:
+      - backend
+    healthcheck:
+      test: ["CMD", "redis-cli", "--raw", "incr", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    logging: *default-logging
+
+  # ── FastAPI Application ─────────────────────────────
+  app:
+    <<: *restart-policy
+    build:
+      context: ./app
+      dockerfile: Dockerfile
+      args:
+        APP_ENV: ${APP_ENV:-production}
+    image: t02-fastapi-app:latest
+    container_name: t02-app
+    hostname: app
+    environment:
+      APP_ENV: ${APP_ENV:-production}
+      APP_HOST: "0.0.0.0"
+      APP_PORT: 8000
+      DATABASE_URL: "postgresql+asyncpg://${POSTGRES_USER:-appuser}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-appdb}"
+      REDIS_URL: "redis://:${REDIS_PASSWORD}@redis:6379/0"
+      SECRET_KEY: ${SECRET_KEY:?err — SECRET_KEY is required}
+      CORS_ORIGINS: ${CORS_ORIGINS:-https://example.com}
+      LOG_LEVEL: ${LOG_LEVEL:-info}
+    env_file:
+      - .env
+    volumes:
+      - ./app:/app:ro          # read-only mount for live code
+    networks:
+      - backend
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    logging: *default-logging
+
+  # ── Nginx Reverse Proxy ─────────────────────────────
+  nginx:
+    <<: *restart-policy
+    image: nginx:1.27-alpine
+    container_name: t02-nginx
+    hostname: nginx
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./nginx/conf.d:/etc/nginx/conf.d:ro
+      - certbot_www:/var/www/certbot:ro
+      - certbot_conf:/etc/letsencrypt:ro
+    networks:
+      - frontend
+      - backend
+    ports:
+      - "80:80"
+      - "443:443"
+    depends_on:
+      app:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "nginx", "-t"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+    logging: *default-logging
+
+  # ── Certbot SSL Certificate Manager ─────────────────
+  certbot:
+    image: certbot/certbot:v2.3.0
+    container_name: t02-certbot
+    hostname: certbot
+    volumes:
+      - certbot_www:/var/www/certbot:rw
+      - certbot_conf:/etc/letsencrypt:rw
+    networks:
+      - frontend
+    depends_on:
+      nginx:
+        condition: service_started
+    entrypoint: >
+      sh -c "
+        trap exit TERM;
+        while :; do
+          certbot renew --webroot -w /var/www/certbot --quiet;
+          sleep 12h;
+        done
+      "
+    logging: *default-logging
