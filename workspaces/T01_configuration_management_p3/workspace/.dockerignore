@@ -1,0 +1,53 @@
+# =============================================================================
+# .dockerignore — excluded from Docker build context
+# =============================================================================
+
+# ── Version control ──
+.git/
+.gitignore
+.gitattributes
+
+# ── Python cache & bytecode ──
+__pycache__/
+*.py[cod]
+*.egg-info/
+*.egg
+dist/
+build/
+.eggs/
+.venv/
+venv/
+env/
+
+# ── IDE & editor ──
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# ── Secrets (never ship to an image!) ──
+.env
+.env.*
+*.pem
+*.key
+**/secrets/
+**/credentials/
+
+# ── Logs & databases ──
+*.log
+*.sqlite
+*.sqlite3
+
+# ── Docker itself ──
+Dockerfile
+.dockerignore
+
+# ── Testing & quality (not needed at runtime) ──
+tests/
+.coverage
+htmlcov/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
