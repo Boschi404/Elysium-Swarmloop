@@ -1,148 +1,120 @@
-"""User CRUD API — FastAPI with in-memory storage and input validation."""
-
-from __future__ import annotations
-
-from typing import List, Optional
+"""
+T01_api_development: User CRUD API
+FastAPI REST API for user management with in-memory storage.
+"""
 
 from fastapi import FastAPI, HTTPException, status
-from pydantic import BaseModel, EmailStr, Field, field_validator
+from pydantic import BaseModel, Field, EmailStr, field_validator
+from typing import List
+from uuid import uuid4, UUID
 
 app = FastAPI(title="User CRUD API", version="1.0.0")
 
-# ---------------------------------------------------------------------------
-# In-memory storage
-# ---------------------------------------------------------------------------
+# ── In-memory storage ──────────────────────────────────────────────────────
 
-_users_db: List[dict] = []
-_next_id: int = 1
+_users_db: dict[str, "User"] = {}
 
+# ── Pydantic models ────────────────────────────────────────────────────────
 
-def _reset_db() -> None:
-    """Reset the in-memory database (useful for tests)."""
-    global _users_db, _next_id  # noqa: PLW0603
-    _users_db = []
-    _next_id = 1
-
-
-# ---------------------------------------------------------------------------
-# Pydantic schemas
-# ---------------------------------------------------------------------------
 
 class UserCreate(BaseModel):
-    """Request body for creating a user."""
+    """Input model for creating a user."""
 
-    name: str = Field(..., min_length=3, description="Name must be at least 3 characters")
-    email: str = Field(..., description="Valid email address")
-    age: int = Field(..., gt=0, description="Age must be greater than 0")
+    name: str = Field(..., min_length=3, description="User name (min 3 chars)")
+    email: EmailStr = Field(..., description="Valid email address")
+    age: int = Field(..., gt=0, description="Age must be positive")
 
-    @field_validator("email")
+    @field_validator("name")
     @classmethod
-    def validate_email(cls, value: str) -> str:
-        """Ensure email contains '@' and a domain."""
-        if "@" not in value or "." not in value.split("@")[-1]:
-            raise ValueError("Invalid email format — must contain '@' and a domain")
-        return value.lower().strip()
+    def name_must_be_longer_than_two(cls, v: str) -> str:
+        stripped = v.strip()
+        if len(stripped) <= 2:
+            raise ValueError("name must be longer than 2 characters")
+        return stripped
 
 
 class UserUpdate(BaseModel):
-    """Request body for updating a user. All fields optional."""
+    """Input model for updating a user (all fields optional)."""
 
-    name: Optional[str] = Field(None, min_length=3, description="Name must be at least 3 characters")
-    email: Optional[str] = Field(None, description="Valid email address")
-    age: Optional[int] = Field(None, gt=0, description="Age must be greater than 0")
+    name: str | None = Field(None, min_length=3, description="User name (min 3 chars)")
+    email: EmailStr | None = Field(None, description="Valid email address")
+    age: int | None = Field(None, gt=0, description="Age must be positive")
 
-    @field_validator("email")
+    @field_validator("name")
     @classmethod
-    def validate_email(cls, value: Optional[str]) -> Optional[str]:
-        """Ensure email contains '@' and a domain if provided."""
-        if value is not None:
-            if "@" not in value or "." not in value.split("@")[-1]:
-                raise ValueError("Invalid email format — must contain '@' and a domain")
-            return value.lower().strip()
-        return None
+    def name_must_be_longer_than_two(cls, v: str | None) -> str | None:
+        if v is not None:
+            stripped = v.strip()
+            if len(stripped) <= 2:
+                raise ValueError("name must be longer than 2 characters")
+            return stripped
+        return v
 
 
-class UserResponse(BaseModel):
-    """Response schema for a user."""
+class User(BaseModel):
+    """Output model representing a stored user."""
 
-    id: int
+    id: str
     name: str
     email: str
     age: int
 
 
-# ---------------------------------------------------------------------------
-# Helper
-# ---------------------------------------------------------------------------
-
-def _find_user(user_id: int) -> dict:
-    """Return user dict by id, or raise 404."""
-    for user in _users_db:
-        if user["id"] == user_id:
-            return user
-    raise HTTPException(
-        status_code=status.HTTP_404_NOT_FOUND,
-        detail=f"User with id {user_id} not found",
-    )
+# ── Helper ─────────────────────────────────────────────────────────────────
 
 
-# ---------------------------------------------------------------------------
-# Routes
-# ---------------------------------------------------------------------------
+def _get_user_or_404(user_id: str) -> User:
+    """Retrieve a user by id or raise 404."""
+    user = _users_db.get(user_id)
+    if user is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"User with id '{user_id}' not found",
+        )
+    return user
 
-@app.get("/users", response_model=List[UserResponse], status_code=status.HTTP_200_OK)
-def list_users() -> List[dict]:
-    """Return all users."""
-    return list(_users_db)
+
+# ── CRUD endpoints ─────────────────────────────────────────────────────────
 
 
-@app.get(
-    "/users/{user_id}",
-    response_model=UserResponse,
-    status_code=status.HTTP_200_OK,
-)
-def get_user(user_id: int) -> dict:
+@app.get("/users", response_model=List[User], status_code=status.HTTP_200_OK)
+def list_users() -> List[User]:
+    """Return all stored users."""
+    return list(_users_db.values())
+
+
+@app.get("/users/{user_id}", response_model=User, status_code=status.HTTP_200_OK)
+def get_user(user_id: str) -> User:
     """Return a single user by id."""
-    return _find_user(user_id)
+    return _get_user_or_404(user_id)
 
 
-@app.post(
-    "/users",
-    response_model=UserResponse,
-    status_code=status.HTTP_201_CREATED,
-)
-def create_user(body: UserCreate) -> dict:
+@app.post("/users", response_model=User, status_code=status.HTTP_201_CREATED)
+def create_user(body: UserCreate) -> User:
     """Create a new user."""
-    global _next_id  # noqa: PLW0603
-    user = {"id": _next_id, "name": body.name.strip(), "email": body.email, "age": body.age}
-    _users_db.append(user)
-    _next_id += 1
+    user_id = str(uuid4())
+    user = User(id=user_id, name=body.name, email=body.email, age=body.age)
+    _users_db[user_id] = user
     return user
 
 
-@app.put(
-    "/users/{user_id}",
-    response_model=UserResponse,
-    status_code=status.HTTP_200_OK,
-)
-def update_user(user_id: int, body: UserUpdate) -> dict:
-    """Update an existing user (partial update)."""
-    user = _find_user(user_id)
-    if body.name is not None:
-        user["name"] = body.name.strip()
-    if body.email is not None:
-        user["email"] = body.email
-    if body.age is not None:
-        user["age"] = body.age
-    return user
+@app.put("/users/{user_id}", response_model=User, status_code=status.HTTP_200_OK)
+def update_user(user_id: str, body: UserUpdate) -> User:
+    """Update an existing user by id (partial update)."""
+    existing = _get_user_or_404(user_id)
+    updated_data = existing.model_copy(
+        update={
+            "name": body.name if body.name is not None else existing.name,
+            "email": body.email if body.email is not None else existing.email,
+            "age": body.age if body.age is not None else existing.age,
+        }
+    )
+    _users_db[user_id] = updated_data
+    return updated_data
 
 
-@app.delete(
-    "/users/{user_id}",
-    status_code=status.HTTP_204_NO_CONTENT,
-)
-def delete_user(user_id: int) -> None:
+@app.delete("/users/{user_id}", status_code=status.HTTP_204_NO_CONTENT)
+def delete_user(user_id: str) -> None:
     """Delete a user by id."""
-    user = _find_user(user_id)
-    _users_db.remove(user)
-    return None
+    _get_user_or_404(user_id)
+    del _users_db[user_id]
