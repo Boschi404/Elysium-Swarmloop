@@ -1,7 +1,7 @@
 ---
 name: elysium-swarmloop
 description: "The Self-Improving Multi-Agent Orchestration Engine. Always-on autonomous agentic loop: prompt enhancement → deep research → massive scatter-gather (up to 100 subagents) → streaming quality gate (immediate retry on arrival) → self-learning iteration → loop until goal achieved with zero human intervention. Auto-activates on EVERY prompt."
-version: 0.8.0
+version: 0.8.1
 author: Boschi404 + ffazecaldy
 testing-agent: Hermes Agent
 tags: [agentic, auto, workflow, multi-agent, quality, research, iteration, scatter-gather, streaming-gather, self-learning, autonomous-loop, meta-scaling, orchestrator-depth2, self-improving, swarmloop, guardrails, security-shield, context-protection, contracts, clarification, plan-integration, sandbox-racing, quality-first, e2e-tested]
@@ -646,8 +646,8 @@ CONTEXT BUDGET RULES:
    └─ Never ignore compression triggers — they signal overflow
 
 5. HARD TIMEOUT GUARD (PREVENTS SILENT FAILURES):
-   ├─ HARD CAP: 300s execution time per task (aligned with orchestrator depth-3 B5 timeout)
-    │   └─ On 300s timeout → kill subagent, DO NOT leave at 0/100
+   ├─ HARD CAP: 450s execution time per task (optimal: covers code_review 265s + buffer)
+    │   └─ On 450s timeout → kill subagent, DO NOT leave at 0/100
     │   └─ Generate partial result: what WAS produced, what was missing
     │   └─ Score: 4/10 minimum (partial completion, not zero)
    ├─ TIMEOUT ESCALATION (non più morte silenziosa):
@@ -754,7 +754,7 @@ elif score WORSENED:
 ```
 TIMEOUT GRACEFUL DEGRADATION:
 
-1. FIRST TIMEOUT (>300s no result):
+1. FIRST TIMEOUT (>450s no result):
    └─ Kill subagent, re-dispatch as 2 smaller tasks with HALF the scope
    └─ Clear deadline: "Return SOMETHING within 60s, even partial"
    └─ If partial result arrives → score 5/10 minimum (not 0)
@@ -1305,6 +1305,9 @@ Detecting tier by keyword matching (e.g. `'api'` in goal text) is fragile. The s
 ## Version History
 
 ```
+v0.8.1 — Timeout calibrated to 450s (optimal sweet spot: code_review 265s + 185s
+         buffer, eliminates v0.8.0 Re-Test regression on bug_fixing/algorithm).
+         Phase 3d + 3j-bis aligned to 450s.
 v0.8.0 — Performance & accuracy improvements: timeout raised to 300s (aligns
          with B5 orchestrator depth-3), 4-Band Filter word-boundary matching
          (prevents false Tier 3 from "api" substring), Clean Code filtered to
