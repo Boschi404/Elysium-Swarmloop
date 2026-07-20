@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Vulnerable Comment Board — XSS Demo</title>
+<style>
+  body { font-family: system-ui, sans-serif; max-width: 720px; margin: 2rem auto; padding: 0 1rem; }
+  .comment { border: 1px solid #ccc; border-radius: 6px; padding: 0.75rem; margin: 0.5rem 0; }
+  .comment .author { font-weight: bold; color: #333; }
+  .comment .text  { margin-top: 0.25rem; }
+  .flash { background: #ffeb3b; padding: 0.5rem; border-radius: 4px; }
+  input, textarea { width: 100%; padding: 0.5rem; margin: 0.25rem 0; box-sizing: border-box; }
+  button { padding: 0.5rem 1.5rem; cursor: pointer; }
+</style>
+</head>
+<body>
+
+<h1>🛡️ Comment Board (Vulnerable)</h1>
+
+<!-- ========== REFLECTED XSS ========== -->
+<section>
+  <h2>Search</h2>
+  <form id="searchForm">
+    <input type="text" id="searchInput" placeholder="Search comments…" />
+    <button type="submit">Search</button>
+  </form>
+  <div id="searchResult" class="flash"><!-- 🔴 innerHTML from query param --></div>
+</section>
+
+<!-- ========== STORED XSS ========== -->
+<section>
+  <h2>Leave a Comment</h2>
+  <form id="commentForm">
+    <input type="text" id="authorInput" placeholder="Your name" />
+    <textarea id="bodyInput" rows="3" placeholder="Write something…"></textarea>
+    <button type="submit">Post Comment</button>
+  </form>
+</section>
+
+<!-- ========== Comments Container ========== -->
+<div id="commentsContainer">
+  <p><em>No comments yet.</em></p>
+</div>
+
+<!-- ========== VULNERABLE JS ========== -->
+<script>
+(function () {
+  /* -----------------------------------------------
+     STORAGE helpers — localStorage backed "database"
+  ----------------------------------------------- */
+  function getComments() {
+    try {
+      return JSON.parse(localStorage.getItem('comments')) || [];
+    } catch { return []; }
+  }
+  function saveComments(comments) {
+    localStorage.setItem('comments', JSON.stringify(comments));
+  }
+
+  /* -----------------------------------------------
+     🔴 REFLECTED XSS — reads query param ?q=... and
+        writes it to innerHTML without escaping
+  ----------------------------------------------- */
+  function renderReflectedXSS() {
+    var params = new URLSearchParams(window.location.search);
+    var q = params.get('q');
+    var resultDiv = document.getElementById('searchResult');
+    if (q) {
+      // 🔴 VULNERABLE: innerHTML with unsanitized user input
+      resultDiv.innerHTML = 'Showing results for: <strong>' + q + '</strong>';
+    }
+  }
+
+  /* -----------------------------------------------
+     🔴 STORED XSS — when rendering saved comments,
+        author + body are injected via innerHTML
+  ----------------------------------------------- */
+  function renderComments() {
+    var comments = getComments();
+    var container = document.getElementById('commentsContainer');
+    if (comments.length === 0) {
+      container.innerHTML = '<p><em>No comments yet.</em></p>';
+      return;
+    }
+    var html = '';
+    for (var i = 0; i < comments.length; i++) {
+      var c = comments[i];
+      // 🔴 VULNERABLE: author and body from localStorage→innerHTML
+      html += '<div class="comment">'
+           +   '<div class="author">' + c.author + '</div>'
+           +   '<div class="text">'   + c.body   + '</div>'
+           + '</div>';
+    }
+    container.innerHTML = html;
+  }
+
+  /* -----------------------------------------------
+     🔴 DOM-BASED XSS — reads location.hash and
+        performs an unsafe eval-style navigation
+  ----------------------------------------------- */
+  function handleHash() {
+    var hash = window.location.hash;
+    if (hash && hash.length > 1) {
+      var value = decodeURIComponent(hash.substring(1)); // strip '#'
+      // 🔴 VULNERABLE: hash content written to innerHTML
+      //     attacker: page.html#<img src=x onerror=alert(1)>
+      var target = document.getElementById('searchResult');
+      if (target) {
+        target.innerHTML = 'Hash directive: <b>' + value + '</b>';
+      }
+    }
+  }
+
+  /* ===============================================
+     FORM HANDLERS
+  =============================================== */
+
+  // --- Search form → reflected XSS ---
+  document.getElementById('searchForm').addEventListener('submit', function (e) {
+    e.preventDefault();
+    var q = document.getElementById('searchInput').value;
+    // 🔴 VULNERABLE: immediately written to innerHTML
+    document.getElementById('searchResult').innerHTML =
+      'Searching for: <strong>' + q + '</strong>';
+    // Change URL to add ?q=... (so refresh reproduces the XSS)
+    window.history.replaceState(null, '', '?q=' + encodeURIComponent(q));
+  });
+
+  // --- Comment form → stored XSS ---
+  document.getElementById('commentForm').addEventListener('submit', function (e) {
+    e.preventDefault();
+    var author = document.getElementById('authorInput').value;
+    var body   = document.getElementById('bodyInput').value;
+    if (!author.trim() || !body.trim()) return;
+
+    var comments = getComments();
+    comments.push({ author: author, body: body, date: new Date().toISOString() });
+    saveComments(comments);
+
+    // Clear inputs and re-render
+    document.getElementById('authorInput').value = '';
+    document.getElementById('bodyInput').value = '';
+    renderComments();
+    renderReflectedXSS(); // refresh search message
+  });
+
+  /* ===============================================
+     BOOT — render on page load
+  =============================================== */
+  renderReflectedXSS();
+  renderComments();
+  handleHash();
+})();
+</script>
+</body>
+</html>

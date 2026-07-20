@@ -1,0 +1,15 @@
+{
+  "name": "t02-security-analysis-tests",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test": "mocha test_xss.js --timeout 10000"
+  },
+  "devDependencies": {
+    "chai": "^5.1.1",
+    "jsdom": "^25.0.1",
+    "mocha": "^11.1.0",
+    "dompurify": "^3.1.6"
+  }
+}

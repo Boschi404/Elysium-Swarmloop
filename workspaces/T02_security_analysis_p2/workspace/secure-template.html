@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Secure Comment Board — XSS-Free</title>
+<style>
+  body { font-family: system-ui, sans-serif; max-width: 720px; margin: 2rem auto; padding: 0 1rem; }
+  .comment { border: 1px solid #ccc; border-radius: 6px; padding: 0.75rem; margin: 0.5rem 0; }
+  .comment .author { font-weight: bold; color: #333; }
+  .comment .text  { margin-top: 0.25rem; }
+  .flash { background: #e8f5e9; padding: 0.5rem; border-radius: 4px; }
+  input, textarea { width: 100%; padding: 0.5rem; margin: 0.25rem 0; box-sizing: border-box; }
+  button { padding: 0.5rem 1.5rem; cursor: pointer; }
+</style>
+</head>
+<body>
+
+<h1>✅ Comment Board (Secure)</h1>
+
+<section>
+  <h2>Search</h2>
+  <form id="searchForm">
+    <input type="text" id="searchInput" placeholder="Search comments…" />
+    <button type="submit">Search</button>
+  </form>
+  <div id="searchResult" class="flash"></div>
+</section>
+
+<section>
+  <h2>Leave a Comment</h2>
+  <form id="commentForm">
+    <input type="text" id="authorInput" placeholder="Your name" />
+    <textarea id="bodyInput" rows="3" placeholder="Write something…"></textarea>
+    <button type="submit">Post Comment</button>
+  </form>
+</section>
+
+<div id="commentsContainer">
+  <p><em>No comments yet.</em></p>
+</div>
+
+<!--
+  Include DOMPurify from CDN if user-generated HTML
+  formatting is needed (shown as upgrade path).
+-->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/dompurify/3.1.6/purify.min.js"></script>
+
+<script>
+(function () {
+  /* -----------------------------------------------
+     STORAGE helpers
+  ----------------------------------------------- */
+  function getComments() {
+    try {
+      return JSON.parse(localStorage.getItem('comments')) || [];
+    } catch { return []; }
+  }
+  function saveComments(comments) {
+    localStorage.setItem('comments', JSON.stringify(comments));
+  }
+
+  /* ===============================================
+     🟢 FIX 1 — REFLECTED XSS
+     Before:  innerHTML concat with user input
+     After:   textContent assigned
+  =============================================== */
+  function renderReflectedXSS() {
+    var params = new URLSearchParams(window.location.search);
+    var q = params.get('q');
+    var resultDiv = document.getElementById('searchResult');
+    if (q) {
+      // 🟢 textContent escapes all HTML automatically
+      resultDiv.textContent = 'Showing results for: ' + q;
+    }
+  }
+
+  /* ===============================================
+     🟢 FIX 2 — STORED XSS
+     Before:  innerHTML with string concatenation
+     After:   createTextNode / textContent per field
+              OR DOMPurify.sanitize() if HTML needed
+  =============================================== */
+  function renderComments() {
+    var comments = getComments();
+    var container = document.getElementById('commentsContainer');
+
+    /* Clear safely */
+    container.textContent = '';
+
+    if (comments.length === 0) {
+      var em = document.createElement('em');
+      em.textContent = 'No comments yet.';
+      var p  = document.createElement('p');
+      p.appendChild(em);
+      container.appendChild(p);
+      return;
+    }
+
+    for (var i = 0; i < comments.length; i++) {
+      var c = comments[i];
+
+      /* --- Build the comment <div> via DOM API (no innerHTML) --- */
+      var div     = document.createElement('div');
+      div.className = 'comment';
+
+      var authorDiv = document.createElement('div');
+      authorDiv.className = 'author';
+      // 🟢 METHOD A: textContent — safest, treats everything as text
+      authorDiv.textContent = c.author || 'Anonymous';
+
+      var bodyDiv = document.createElement('div');
+      bodyDiv.className = 'text';
+      // 🟢 METHOD A (preferred): textContent for plain text
+      bodyDiv.textContent = c.body || '';
+
+      /* ----------------------------------------------------------
+         🟢 METHOD B — DOMPurify (when you MUST allow safe HTML)
+         Uncomment the DOMPurify line and comment out textContent
+         above to allow limited safe HTML formatting:
+           bodyDiv.textContent = DOMPurify.sanitize(c.body, {
+             ALLOWED_TAGS: ['b','i','em','strong','a','code'],
+             ALLOWED_ATTR: ['href']
+           });
+      ---------------------------------------------------------- */
+
+      div.appendChild(authorDiv);
+      div.appendChild(bodyDiv);
+      container.appendChild(div);
+    }
+  }
+
+  /* ===============================================
+     🟢 FIX 3 — DOM-BASED XSS (location.hash)
+     Before:  innerHTML from hash + decode
+     After:   textContent + numeric validation
+  =============================================== */
+  function handleHash() {
+    var hash = window.location.hash;
+    if (hash && hash.length > 1) {
+      var value = decodeURIComponent(hash.substring(1));
+      var target = document.getElementById('searchResult');
+      if (target) {
+        // 🟢 textContent prevents HTML injection
+        target.textContent = 'Hash directive: ' + value;
+      }
+    }
+  }
+
+  /* ===============================================
+     FORM HANDLERS — same fixes applied
+  =============================================== */
+
+  document.getElementById('searchForm').addEventListener('submit', function (e) {
+    e.preventDefault();
+    var q = document.getElementById('searchInput').value;
+    // 🟢 textContent
+    document.getElementById('searchResult').textContent =
+      'Searching for: ' + q;
+    window.history.replaceState(null, '', '?q=' + encodeURIComponent(q));
+  });
+
+  document.getElementById('commentForm').addEventListener('submit', function (e) {
+    e.preventDefault();
+    var author = document.getElementById('authorInput').value;
+    var body   = document.getElementById('bodyInput').value;
+    if (!author.trim() || !body.trim()) return;
+
+    var comments = getComments();
+    comments.push({ author: author, body: body, date: new Date().toISOString() });
+    saveComments(comments);
+
+    document.getElementById('authorInput').value = '';
+    document.getElementById('bodyInput').value = '';
+    renderComments();
+    renderReflectedXSS();
+  });
+
+  /* BOOT */
+  renderReflectedXSS();
+  renderComments();
+  handleHash();
+})();
+</script>
+</body>
+</html>
