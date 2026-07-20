@@ -1,0 +1,21 @@
+# FastAPI + ASGI
+fastapi==0.115.6
+uvicorn[standard]==0.34.0
+gunicorn==23.0.0
+
+# Database
+sqlalchemy==2.0.36
+asyncpg==0.30.0
+psycopg2-binary==2.9.10
+alembic==1.14.0
+
+# Redis
+redis==5.2.1
+
+# Validation
+pydantic==2.10.4
+pydantic-settings==2.7.0
+
+# Utilities
+httpx==0.28.1
+python-dotenv==1.0.1

@@ -1,0 +1,35 @@
+{
+  "system": {
+    "equations": [
+      "2x + 3y - z = 8",
+      "-x + 4y + 2z = 5",
+      "3x - y + 4z = 12"
+    ]
+  },
+  "method": "Cramer's Rule",
+  "determinants": {
+    "D": 77,
+    "Dx": 209,
+    "Dy": 99,
+    "Dz": 99
+  },
+  "solution": {
+    "x": {
+      "exact": "19/7",
+      "decimal": 2.7142857142857144
+    },
+    "y": {
+      "exact": "9/7",
+      "decimal": 1.2857142857142858
+    },
+    "z": {
+      "exact": "9/7",
+      "decimal": 1.2857142857142858
+    }
+  },
+  "verification": {
+    "eq1": { "expected": 8, "got": 8.0, "pass": true },
+    "eq2": { "expected": 5, "got": 5.0, "pass": true },
+    "eq3": { "expected": 12, "got": 12.0, "pass": true }
+  }
+}

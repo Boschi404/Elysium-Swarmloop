@@ -1,0 +1,66 @@
+# =============================================================================
+# .dockerignore — keep the build context lean and avoid cache-busting layers
+# =============================================================================
+
+# ── Version control ─────────────────────────────────────────────────────────
+.git/
+.gitignore
+.gitattributes
+.gitmodules
+
+# ── Python ──────────────────────────────────────────────────────────────────
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+*.egg-info/
+dist/
+build/
+*.egg
+.venv/
+venv/
+env/
+*.whl
+
+# ── IDE / Editor ────────────────────────────────────────────────────────────
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# ── Testing & Coverage ─────────────────────────────────────────────────────
+.pytest_cache/
+.coverage
+htmlcov/
+*.coverage
+test*.py
+tests/
+**/tests/
+
+# ── Environment & Config ────────────────────────────────────────────────────
+.env
+.env.*
+!.env.example
+docker-compose*.yml
+docker-compose*.yaml
+*.log
+Dockerfile
+.dockerignore
+
+# ── CI / CD ─────────────────────────────────────────────────────────────────
+.github/
+.gitlab-ci.yml
+.circleci/
+
+# ── Documentation ───────────────────────────────────────────────────────────
+docs/
+*.md
+!README.md
+
+# ── Data & Temp ─────────────────────────────────────────────────────────────
+data/
+tmp/
+*.db
+*.sqlite3
