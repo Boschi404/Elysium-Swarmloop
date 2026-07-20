@@ -1,119 +1,78 @@
+"""User Service — FastAPI CRUD with proper error handling.
+
+Fixes applied:
+  Bug 1: GET /users/{id} returns 404 instead of crashing on missing user
+  Bug 2: POST /users validates name is non-empty (422 on empty/whitespace)
+  Bug 3: PUT /users/{id} checks user exists first (404 if not found)
 """
-User Service — Fixed version.
 
-Bugs fixed:
-  1. GET /users/{id} returns 404 instead of crashing when user not found
-  2. POST /users rejects empty names with 422
-  3. PUT /users/{id} checks user existence before updating
-"""
+from fastapi import FastAPI, HTTPException
+from pydantic import BaseModel, field_validator
 
-from typing import Optional
-from fastapi import FastAPI, HTTPException, Query, status
-from pydantic import BaseModel, Field
+app = FastAPI(title="User Service")
 
-# ---------------------------------------------------------------------------
-# In-memory store & auto-increment id
-# ---------------------------------------------------------------------------
-users_db: list[dict] = []
-next_id: int = 1
+# In-memory store
+users_db: dict[int, dict] = {}
+next_id = 1
 
 
-# ---------------------------------------------------------------------------
-# Schemas
-# ---------------------------------------------------------------------------
 class UserCreate(BaseModel):
-    name: str = Field(..., min_length=1, description="User full name (required, non-empty)")
-    email: str = Field(default="", description="Email address")
+    name: str
+
+    @field_validator("name")
+    @classmethod
+    def name_must_not_be_empty(cls, v: str) -> str:
+        stripped = v.strip()
+        if not stripped:
+            raise ValueError("Name must not be empty")
+        return stripped
 
 
 class UserUpdate(BaseModel):
-    name: Optional[str] = Field(None, min_length=1, description="User full name")
-    email: Optional[str] = None
+    name: str | None = None
+
+    @field_validator("name")
+    @classmethod
+    def name_must_not_be_empty_if_provided(cls, v: str | None) -> str | None:
+        if v is not None:
+            stripped = v.strip()
+            if not stripped:
+                raise ValueError("Name must not be empty")
+            return stripped
+        return v
 
 
-class UserOut(BaseModel):
-    id: int
-    name: str
-    email: str
+@app.get("/users")
+def list_users():
+    return list(users_db.values())
 
 
-# ---------------------------------------------------------------------------
-# Helpers
-# ---------------------------------------------------------------------------
-def _find_user_index(user_id: int) -> int | None:
-    """Return the list index of *user_id*, or ``None`` if not found."""
-    for i, u in enumerate(users_db):
-        if u["id"] == user_id:
-            return i
-    return None
-
-
-def _raise_if_missing(user_id: int) -> dict:
-    """Look up a user and raise 404 if absent."""
-    idx = _find_user_index(user_id)
-    if idx is None:
-        raise HTTPException(status_code=404, detail="User not found")
-    return users_db[idx]
-
-
-# ---------------------------------------------------------------------------
-# Application
-# ---------------------------------------------------------------------------
-app = FastAPI(title="User Service", version="1.0.0")
-
-
-@app.get("/users", response_model=list[UserOut])
-def list_users(skip: int = Query(0, ge=0), limit: int = Query(100, ge=1, le=500)):
-    return users_db[skip : skip + limit]
-
-
-@app.get("/users/{user_id}", response_model=UserOut)
+@app.get("/users/{user_id}")
 def get_user(user_id: int):
-    """
-    BUG 1 — FIXED: raises 404 when the user does not exist instead of
-    returning ``None`` (which caused a 500 crash).
-    """
-    user = _raise_if_missing(user_id)
+    # Bug 1 fix: return 404 instead of crashing on missing user
+    user = users_db.get(user_id)
+    if user is None:
+        raise HTTPException(status_code=404, detail="User not found")
     return user
 
 
-@app.post("/users", response_model=UserOut, status_code=status.HTTP_201_CREATED)
-def create_user(payload: UserCreate):
-    """
-    BUG 2 — FIXED: ``name`` has ``min_length=1`` in the Pydantic model so
-    empty strings are rejected at the validation layer (422) before the
-    handler is reached.
-    """
+@app.post("/users", status_code=201)
+def create_user(body: UserCreate):
     global next_id
-    record = {"id": next_id, "name": payload.name, "email": payload.email}
-    users_db.append(record)
+    # Bug 2 fix: validation is handled by Pydantic's field_validator above
+    user = {"id": next_id, "name": body.name}
+    users_db[next_id] = user
     next_id += 1
-    return record
+    return user
 
 
-@app.put("/users/{user_id}", response_model=UserOut)
-def update_user(user_id: int, payload: UserUpdate):
-    """
-    BUG 3 — FIXED: first checks user existence via _find_user_index,
-    raising 404 if not found, then applies the partial update.
-    """
-    idx = _find_user_index(user_id)
-    if idx is None:
+@app.put("/users/{user_id}")
+def update_user(user_id: int, body: UserUpdate):
+    # Bug 3 fix: check user exists before updating
+    if user_id not in users_db:
         raise HTTPException(status_code=404, detail="User not found")
 
-    record = users_db[idx]
-    if payload.name is not None:
-        record["name"] = payload.name
-    if payload.email is not None:
-        record["email"] = payload.email
-    users_db[idx] = record
-    return record
-
-
-@app.delete("/users/{user_id}", status_code=status.HTTP_204_NO_CONTENT)
-def delete_user(user_id: int):
-    idx = _find_user_index(user_id)
-    if idx is None:
-        raise HTTPException(status_code=404, detail="User not found")
-    users_db.pop(idx)
-    return None
+    user = users_db[user_id]
+    if body.name is not None:
+        user["name"] = body.name
+    return user
