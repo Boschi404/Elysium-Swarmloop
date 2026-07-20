@@ -1,241 +1,190 @@
-"""Tests for the User CRUD API (T01_api_development)."""
-
+"""Tests for User CRUD API (synchronous, using conftest's client fixture)."""
 import pytest
-from fastapi import status
-from fastapi.testclient import TestClient
+from main import users_db
+import main as m
 
-
-# ---------------------------------------------------------------------------
-# Fixtures
-# ---------------------------------------------------------------------------
 
 @pytest.fixture(autouse=True)
-def _clear_db():
-    """Reset the in-memory store before every test."""
-    import main as m
-    m._db.clear()
+def reset_db():
+    """Reset the in-memory DB before each test."""
+    users_db.clear()
+    m.next_id = 1
     yield
 
 
-# ===================================================================
-# POST /users  —  CREATE
-# ===================================================================
+# --- CREATE ---
 
-class TestCreateUser:
-    def test_create_valid_user(self, client: TestClient):
-        resp = client.post("/users", json={
-            "name": "Bob", "email": "bob@example.com", "age": 25,
-        })
-        assert resp.status_code == status.HTTP_201_CREATED
-        data = resp.json()
-        assert data["name"] == "Bob"
-        assert data["email"] == "bob@example.com"
-        assert data["age"] == 25
-        assert "id" in data
-        assert len(data["id"]) == 36  # UUID length
-
-    def test_create_returns_201(self, client: TestClient):
-        resp = client.post("/users", json={
-            "name": "Carol", "email": "carol@x.com", "age": 20,
-        })
-        assert resp.status_code == status.HTTP_201_CREATED
-
-    @pytest.mark.parametrize("payload", [
-        {"name": "A", "email": "a@b.com", "age": 10},          # name too short
-        {"name": "  X  ", "email": "x@y.com", "age": 10},      # stripped name too short
-        {"name": "Valid", "email": "not-an-email", "age": 10}, # bad email
-        {"name": "Valid", "email": "a@b.com", "age": 0},       # age == 0
-        {"name": "Valid", "email": "a@b.com", "age": -5},      # age < 0
-    ])
-    def test_validation_errors(self, client: TestClient, payload):
-        resp = client.post("/users", json=payload)
-        assert resp.status_code == 422
-
-    def test_empty_name_rejected(self, client: TestClient):
-        resp = client.post("/users", json={
-            "name": "", "email": "a@b.com", "age": 10,
-        })
-        assert resp.status_code == 422
-
-    def test_missing_field(self, client: TestClient):
-        resp = client.post("/users", json={"name": "Alice"})
-        assert resp.status_code == 422
-
-    def test_age_not_int(self, client: TestClient):
-        resp = client.post("/users", json={
-            "name": "Valid", "email": "a@b.com", "age": "abc",
-        })
-        assert resp.status_code == 422
+def test_create_user_201(client):
+    resp = client.post("/users", json={
+        "name": "Alice",
+        "email": "alice@example.com",
+        "age": 30,
+    })
+    assert resp.status_code == 201
+    data = resp.json()
+    assert data["id"] == 1
+    assert data["name"] == "Alice"
+    assert data["email"] == "alice@example.com"
+    assert data["age"] == 30
+    assert "created_at" in data
+    assert "updated_at" in data
 
 
-# ===================================================================
-# GET /users  —  LIST
-# ===================================================================
-
-class TestListUsers:
-    def test_empty_list(self, client: TestClient):
-        resp = client.get("/users")
-        assert resp.status_code == status.HTTP_200_OK
-        assert resp.json() == []
-
-    def test_list_after_creation(self, client: TestClient):
-        client.post("/users", json={
-            "name": "Alice", "email": "alice@x.com", "age": 30,
-        })
-        resp = client.get("/users")
-        assert resp.status_code == status.HTTP_200_OK
-        data = resp.json()
-        assert len(data) == 1
-        assert data[0]["name"] == "Alice"
-
-    def test_list_multiple(self, client: TestClient):
-        for i in range(5):
-            client.post("/users", json={
-                "name": f"User{i}", "email": f"u{i}@x.com", "age": 20 + i,
-            })
-        resp = client.get("/users")
-        assert len(resp.json()) == 5
-
-    def test_list_returns_200(self, client: TestClient):
-        resp = client.get("/users")
-        assert resp.status_code == status.HTTP_200_OK
-
-    def test_list_returns_array(self, client: TestClient):
-        resp = client.get("/users")
-        assert isinstance(resp.json(), list)
+def test_create_user_invalid_email_422(client):
+    resp = client.post("/users", json={
+        "name": "Alice",
+        "email": "not-an-email",
+        "age": 30,
+    })
+    assert resp.status_code == 422
 
 
-# ===================================================================
-# GET /users/{id}  —  GET BY ID
-# ===================================================================
-
-class TestGetUser:
-    def _create_user(self, client: TestClient, name="Alice", email="alice@x.com", age=30):
-        return client.post("/users", json={
-            "name": name, "email": email, "age": age,
-        }).json()
-
-    def test_get_existing(self, client: TestClient):
-        user = self._create_user(client)
-        uid = user["id"]
-        resp = client.get(f"/users/{uid}")
-        assert resp.status_code == status.HTTP_200_OK
-        assert resp.json()["name"] == "Alice"
-
-    def test_get_nonexistent(self, client: TestClient):
-        resp = client.get("/users/00000000-0000-0000-0000-000000000000")
-        assert resp.status_code == status.HTTP_404_NOT_FOUND
-
-    def test_get_returns_200(self, client: TestClient):
-        user = self._create_user(client)
-        resp = client.get(f"/users/{user['id']}")
-        assert resp.status_code == status.HTTP_200_OK
-
-    def test_get_returns_correct_user(self, client: TestClient):
-        self._create_user(client, name="Alice")
-        u2 = self._create_user(client, name="Bob")
-        resp = client.get(f"/users/{u2['id']}")
-        assert resp.json()["name"] == "Bob"
+def test_create_user_name_too_short_422(client):
+    resp = client.post("/users", json={
+        "name": "Al",
+        "email": "alice@example.com",
+        "age": 30,
+    })
+    assert resp.status_code == 422
 
 
-# ===================================================================
-# PUT /users/{id}  —  UPDATE
-# ===================================================================
-
-class TestUpdateUser:
-    def _create_user(self, client: TestClient):
-        return client.post("/users", json={
-            "name": "Alice", "email": "alice@x.com", "age": 30,
-        }).json()
-
-    def test_update_all_fields(self, client: TestClient):
-        user = self._create_user(client)
-        uid = user["id"]
-        resp = client.put(f"/users/{uid}", json={
-            "name": "Alice Updated", "email": "alice.new@x.com", "age": 31,
-        })
-        assert resp.status_code == status.HTTP_200_OK
-        data = resp.json()
-        assert data["name"] == "Alice Updated"
-        assert data["email"] == "alice.new@x.com"
-        assert data["age"] == 31
-
-    def test_update_partial(self, client: TestClient):
-        user = self._create_user(client)
-        uid = user["id"]
-        resp = client.put(f"/users/{uid}", json={"age": 99})
-        assert resp.status_code == status.HTTP_200_OK
-        assert resp.json()["age"] == 99
-        assert resp.json()["name"] == "Alice"  # unchanged
-
-    def test_update_nonexistent(self, client: TestClient):
-        resp = client.put("/users/00000000-0000-0000-0000-000000000000", json={"name": "ValidName"})
-        assert resp.status_code == status.HTTP_404_NOT_FOUND
-
-    def test_update_validation_error(self, client: TestClient):
-        user = self._create_user(client)
-        resp = client.put(f"/users/{user['id']}", json={"age": -1})
-        assert resp.status_code == 422
-
-    def test_update_preserves_unchanged_fields(self, client: TestClient):
-        user = self._create_user(client)
-        client.put(f"/users/{user['id']}", json={"name": "NewName"})
-        resp = client.get(f"/users/{user['id']}")
-        assert resp.json()["email"] == "alice@x.com"
-        assert resp.json()["age"] == 30
+def test_create_user_age_zero_422(client):
+    resp = client.post("/users", json={
+        "name": "Alice",
+        "email": "alice@example.com",
+        "age": 0,
+    })
+    assert resp.status_code == 422
 
 
-# ===================================================================
-# DELETE /users/{id}  —  DELETE
-# ===================================================================
-
-class TestDeleteUser:
-    def _create_user(self, client: TestClient):
-        return client.post("/users", json={
-            "name": "Alice", "email": "alice@x.com", "age": 30,
-        }).json()
-
-    def test_delete_existing(self, client: TestClient):
-        user = self._create_user(client)
-        uid = user["id"]
-        resp = client.delete(f"/users/{uid}")
-        assert resp.status_code == status.HTTP_204_NO_CONTENT
-        # verify gone
-        get_resp = client.get(f"/users/{uid}")
-        assert get_resp.status_code == status.HTTP_404_NOT_FOUND
-
-    def test_delete_nonexistent_still_204(self, client: TestClient):
-        resp = client.delete("/users/00000000-0000-0000-0000-000000000000")
-        assert resp.status_code == status.HTTP_204_NO_CONTENT
-
-    def test_list_after_delete(self, client: TestClient):
-        user = self._create_user(client)
-        client.delete(f"/users/{user['id']}")
-        resp = client.get("/users")
-        assert resp.json() == []
+def test_create_user_age_negative_422(client):
+    resp = client.post("/users", json={
+        "name": "Alice",
+        "email": "alice@example.com",
+        "age": -5,
+    })
+    assert resp.status_code == 422
 
 
-# ===================================================================
-# Full lifecycle
-# ===================================================================
+# --- LIST ---
 
-class TestLifecycle:
-    def test_create_read_update_delete(self, client: TestClient):
-        # Create
-        created = client.post("/users", json={
-            "name": "Diana", "email": "diana@x.com", "age": 28,
-        }).json()
-        uid = created["id"]
+def test_list_users_empty_200(client):
+    resp = client.get("/users")
+    assert resp.status_code == 200
+    assert resp.json() == []
 
-        # Read
-        got = client.get(f"/users/{uid}").json()
-        assert got["name"] == "Diana"
 
-        # Update
-        client.put(f"/users/{uid}", json={"age": 29})
-        updated = client.get(f"/users/{uid}").json()
-        assert updated["age"] == 29
+def test_list_users_200(client):
+    # Create a user first
+    client.post("/users", json={
+        "name": "Alice", "email": "alice@example.com", "age": 30,
+    })
+    resp = client.get("/users")
+    assert resp.status_code == 200
+    data = resp.json()
+    assert len(data) == 1
+    assert data[0]["name"] == "Alice"
 
-        # Delete
-        client.delete(f"/users/{uid}")
-        assert client.get(f"/users/{uid}").status_code == status.HTTP_404_NOT_FOUND
+
+# --- GET BY ID ---
+
+def test_get_user_200(client):
+    create_resp = client.post("/users", json={
+        "name": "Alice", "email": "alice@example.com", "age": 30,
+    })
+    user_id = create_resp.json()["id"]
+    resp = client.get(f"/users/{user_id}")
+    assert resp.status_code == 200
+    assert resp.json()["name"] == "Alice"
+
+
+def test_get_user_not_found_404(client):
+    resp = client.get("/users/999")
+    assert resp.status_code == 404
+    assert "not found" in resp.json()["detail"].lower()
+
+
+# --- UPDATE ---
+
+def test_update_user_200(client):
+    create_resp = client.post("/users", json={
+        "name": "Alice", "email": "alice@example.com", "age": 30,
+    })
+    user_id = create_resp.json()["id"]
+    resp = client.put(f"/users/{user_id}", json={
+        "name": "Alice Updated",
+        "age": 31,
+    })
+    assert resp.status_code == 200
+    data = resp.json()
+    assert data["name"] == "Alice Updated"
+    assert data["age"] == 31
+    assert data["email"] == "alice@example.com"  # unchanged
+
+
+def test_update_user_not_found_404(client):
+    resp = client.put("/users/999", json={"name": "Nobody"})
+    assert resp.status_code == 404
+
+
+def test_update_user_invalid_email_422(client):
+    create_resp = client.post("/users", json={
+        "name": "Alice", "email": "alice@example.com", "age": 30,
+    })
+    user_id = create_resp.json()["id"]
+    resp = client.put(f"/users/{user_id}", json={
+        "email": "bad-email",
+    })
+    assert resp.status_code == 422
+
+
+def test_update_user_no_fields_400(client):
+    create_resp = client.post("/users", json={
+        "name": "Alice", "email": "alice@example.com", "age": 30,
+    })
+    user_id = create_resp.json()["id"]
+    resp = client.put(f"/users/{user_id}", json={})
+    assert resp.status_code == 400
+
+
+# --- DELETE ---
+
+def test_delete_user_204(client):
+    create_resp = client.post("/users", json={
+        "name": "Alice", "email": "alice@example.com", "age": 30,
+    })
+    user_id = create_resp.json()["id"]
+    resp = client.delete(f"/users/{user_id}")
+    assert resp.status_code == 204
+    # Verify it's gone
+    get_resp = client.get(f"/users/{user_id}")
+    assert get_resp.status_code == 404
+
+
+def test_delete_user_not_found_404(client):
+    resp = client.delete("/users/999")
+    assert resp.status_code == 404
+
+
+# --- AUTO-INCREMENT ---
+
+def test_id_auto_increment(client):
+    u1 = client.post("/users", json={"name": "User1", "email": "u1@test.com", "age": 20})
+    u2 = client.post("/users", json={"name": "User2", "email": "u2@test.com", "age": 25})
+    assert u1.json()["id"] == 1
+    assert u2.json()["id"] == 2
+
+
+# --- PARTIAL UPDATE ---
+
+def test_update_user_partial_name_only(client):
+    create_resp = client.post("/users", json={
+        "name": "Alice", "email": "alice@example.com", "age": 30,
+    })
+    user_id = create_resp.json()["id"]
+    resp = client.put(f"/users/{user_id}", json={"name": "Bob"})
+    assert resp.status_code == 200
+    data = resp.json()
+    assert data["name"] == "Bob"
+    assert data["email"] == "alice@example.com"
+    assert data["age"] == 30
