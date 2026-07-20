@@ -1,7 +1,7 @@
 ---
 name: elysium-swarmloop
 description: "The Self-Improving Multi-Agent Orchestration Engine. Always-on autonomous agentic loop: prompt enhancement → deep research → massive scatter-gather (up to 100 subagents) → streaming quality gate (immediate retry on arrival) → self-learning iteration → loop until goal achieved with zero human intervention. Auto-activates on EVERY prompt."
-version: 0.7.2
+version: 0.8.0
 author: Boschi404 + ffazecaldy
 testing-agent: Hermes Agent
 tags: [agentic, auto, workflow, multi-agent, quality, research, iteration, scatter-gather, streaming-gather, self-learning, autonomous-loop, meta-scaling, orchestrator-depth2, self-improving, swarmloop, guardrails, security-shield, context-protection, contracts, clarification, plan-integration, sandbox-racing, quality-first, e2e-tested]
@@ -177,13 +177,19 @@ The tier is determined automatically when the loop activates:
 | \*\*2 — Standard\*\* | 5-15 | 7/10 | ❌ | Feature add, bugfix, small refactor, single module |
 | \*\*3 — Complex\*\* | 15-50 | 7/10 | ❌ | Multi-file feature, API endpoint, research task, medium project |
 | \*\*4 — Epic\*\* | 50-100 | 8/10 | ❌ | Greenfield project, system redesign, cross-cutting integration |
-\*\*Tier 1 Fast-Path\*\*: If the goal is a single atomic action (one command, one edit, one lookup), skip the loop entirely. Execute directly, return result. No state init, no self-learning.
-\*\*Tier detection heuristic:\*\*
+**Tier 1 Fast-Path**: If the goal is a single atomic action (one command, one edit, one lookup, 1 expected file) OR the band is "low" (typo, rename, config), skip the loop entirely. Execute directly, return result. No state init, no self-learning. Task with ≤2 files and no external dependencies = Tier 1 guaranteed.
+**Tier detection heuristic — USE WORD BOUNDARIES:**
 ```
-TIER 1: atomic action (1 file, 1 command, 1 question)
+TIER 1: atomic action (1 file, 1 command, 1 question) or keyword count < 2
 TIER 2: 1-3 files, familiar domain, < 1h estimated
 TIER 3: 3-10 files, multiple domains, research needed
 TIER 4: 10+ files, greenfield, cross-system, > 4h estimated
+
+⚠️  WORD-BOUNDARY MATCHING (anti false-positive):
+   Use \b on keywords: \bapi\b not "api" inside "/api/users/"
+   Strip URL paths (/api/, /v1/) before matching
+   "CRUD" + 1 entity = Tier 2 max (not Tier 3)
+   "System" in "auth system" = ignore (not Tier 4)
 ```
 When in doubt, default to Tier 2 and let the assess phase escalate.
 #### 🧠 Codebase Familiarity Override
@@ -358,31 +364,33 @@ Task 81-90: Generate reports/visualizations
 Task 91-100: Review and quality check
 ```
 ### 1c — Clean Code Standards (by Tier)
-\*\*Do NOT apply to Tier 1\*\* (quick fixes). For Tier 2-4, these are \*\*mandatory\*\* in subagent quality criteria:
+**Do NOT apply to Tier 1** (quick fixes) or **non-code tasks** (logical deduction, security analysis). For Tier 2-4 code tasks, these are **mandatory** in subagent quality criteria:
+
 ```
-CLEAN CODE STANDARDS (injected into quality criteria):
-1. TYPE HINTS & DOCSTRINGS (Tier 2-4):
-├─ Every function must have explicit type hints (params + return)
-├─ Every public function must have a concise docstring
-│ └─ Format: [What it does]. Input: [params]. Output: [return]. Raises: [exceptions].
-└─ Validation phase checks type hint presence
+CLEAN CODE STANDARDS (injected into quality criteria — CODE TASKS ONLY):
+
+1. TYPE HINTS & DOCSTRINGS (Tier 2-4 code):
+   ├─ Every function must have explicit type hints (params + return)
+   ├─ Every public function must have a concise docstring
+   └─ Validation phase checks type hint presence
+
 2. SINGLE RESPONSIBILITY (Tier 3-4, via Actor-Critic):
-├─ One function/class does ONE thing
-├─ If an API route does DB query + business logic + email → ❌ FAILED
-├─ Applied only after 3+ retries (not for every task — expensive)
-└─ Verified by Actor-Critic, not automatic regex
-3. DRY — DON'T REPEAT YOURSELF (Tier 3-4, via Assembly Task):
-   ├─ If two subagents produce duplicate code, the Assembly Task extracts
-   │   it into a shared module (utils/ or config/)
-   ├─ Applied POST-BATCH, not during individual dispatch
+   ├─ One function/class does ONE thing
+   ├─ If an API route does DB query + business logic + email → ❌ FAILED
+   └─ Verified by Actor-Critic, not automatic regex
+
+3. DRY (Tier 3-4, via Assembly Task):
+   ├─ If two subagents produce duplicate code, extract to shared module
    └─ Verified by Assembly Task (Phase 3g point 6)
 
-4. ERROR HANDLING (Tier 2-4, MANDATORY):
-   ├─ Every function that interacts with external systems (DB, API, filesystem, network) MUST have try/except
-   ├─ API routes MUST return appropriate error status codes (4xx for client errors, 5xx for server errors)
-   ├─ Bare `except:` without Exception class → ❌ FAILED. Use `except Exception as e:` minimum
-   ├─ Applied to ALL task types, validated in Phase 3b (check 5)
-   └─ Verified by grep for "try:" after every "open(", ".request(", ".execute(", ".connect(" call
+4. ERROR HANDLING (Tier 2-4 code):
+   ├─ External calls (DB, API, filesystem, network) MUST have try/except
+   ├─ API routes: HTTPException counts as error handling (FastAPI idiom)
+   ├─ Bare `except:` without Exception class → ❌ FAILED
+   └─ Verified by Phase 3b check 5
+
+5. FILTER: skip ALL checks if task_type is NOT code
+   └─ text/analysis tasks (logical_deduction, code_review, security_analysis) → skip Phase 1c
 ```
 ### 1d — Shared Interface Contracts (pre-dispatch)
 Before dispatching subagents that produce calling/called modules (e.g. router.py → client.py), document the \*\*complete function signatures\*\* in the context of EVERY subagent involved.
@@ -638,10 +646,10 @@ CONTEXT BUDGET RULES:
    └─ Never ignore compression triggers — they signal overflow
 
 5. HARD TIMEOUT GUARD (PREVENTS SILENT FAILURES):
-   ├─ HARD CAP: 180s execution time per task (Hermes default child_timeout_seconds)
-   │   └─ On 180s timeout → kill subagent, DO NOT leave at 0/100
-   │   └─ Generate partial result: what WAS produced, what was missing
-   │   └─ Score: 4/10 minimum (partial completion, not zero)
+   ├─ HARD CAP: 300s execution time per task (aligned with orchestrator depth-3 B5 timeout)
+    │   └─ On 300s timeout → kill subagent, DO NOT leave at 0/100
+    │   └─ Generate partial result: what WAS produced, what was missing
+    │   └─ Score: 4/10 minimum (partial completion, not zero)
    ├─ TIMEOUT ESCALATION (non più morte silenziosa):
    │   └─ 1st timeout on a task type → re-dispatch as 2 smaller tasks with 240s combined
    │   └─ 2nd timeout on same task type → inline execution by main agent
@@ -746,7 +754,7 @@ elif score WORSENED:
 ```
 TIMEOUT GRACEFUL DEGRADATION:
 
-1. FIRST TIMEOUT (>120s no result):
+1. FIRST TIMEOUT (>300s no result):
    └─ Kill subagent, re-dispatch as 2 smaller tasks with HALF the scope
    └─ Clear deadline: "Return SOMETHING within 60s, even partial"
    └─ If partial result arrives → score 5/10 minimum (not 0)
@@ -796,10 +804,12 @@ GLOBAL RE-CHECK (mandatory if quality_first=true, optional otherwise):
 | Condition | Global Re-Check? |
 |-----------|:----------------:|
 | Quality-First Mode active | ✅ **Mandatory** |
-| 25+ files created/modified | ✅ Auto-activate |
-| 3+ orchestrator depth-2 subtrees | ✅ Auto-activate |
-| Assembly Task detected DRY violations | ✅ Auto-activate |
-| Tier 2 or below, < 10 files | ❌ Skip (low value) |
+| Tier 4 (50+ files modified) | ✅ Yes |
+| Tier 3 with 25+ files modified | ✅ Yes |
+| Batch with 5+ cross-module dependencies | ✅ Yes |
+| Tier 1-2 (any file count) | ❌ **Skip** |
+| files_modified < 5 AND tier < 3 | ❌ **Skip** |
+| Text-only tasks (logical, review) | ❌ Skip |
 
 **Resolution:** if any check fails → create fix tasks with specific findings and retry once. If still failing → include in final report as known gaps.
 
@@ -910,182 +920,43 @@ Session N+3:
 └─ If pattern stable (FPR > 75% for 3 times) → create skill (Level 3)
 ```
 \*\*Measurable:\*\* first-pass rate MUST increase over time. If after 5 sessions of the same goal\_type FPR hasn't improved by at least 10%, self-learning isn't working — re-evaluate lesson format.
-### 4e — Self-Learning Guardrails (CRITICAL)
-Self-learning \*\*without guardrails is dangerous\*\*. The model learning from its own outputs can enter negative feedback cycles, accumulate bad lessons, and saturate the memory store. These guardrails are \*\*non-optional\*\*.
-#### Guardrail 1 — Memory Budget Cap
-```
-BEFORE saving a memory entry:
-├─ Count how many ES[...] entries already exist in memory
-├─ If > 8 ES[...] entries:
-│ └─ Find oldest ES[...] entry with lowest FPR
-│ └─ Replace it (memory action="replace")
-│ └─ DON'T add — replace
-├─ If <= 8 ES[...] entries:
-│ └─ Add new entry
-└─ Never exceed 10 ES[...] entries total
-```
-#### Guardrail 2 — Lesson Validation (anti-circularity)
-A lesson is valid ONLY if:
-```
-✅ VALID (save):
-├─ Lesson confirmed by a failed test + successful fix (evidence-based)
-├─ Lesson is a verifiable technical pitfall (e.g. "FastAPI route ordering")
-└─ Lesson comes from a post-mortem with identified root cause
-❌ INVALID (don't save — circularity risk):
-├─ "I tried X and it worked" — not a lesson, an anecdote
-├─ "Model X is better than Model Y" — opinion, not fact
-├─ Self-referential lessons (e.g. "save lessons frequently")
-└─ Lessons without objective verification criteria
-```
-\*\*Anti-circularity test:\*\* before saving a lesson, ask "If this lesson were wrong, how would I know?" If no answer, don't save it.
-#### Guardrail 3 — Skill Mutation Protection
-```
-✅ ALLOWED (no user confirmation needed):
-├─ Patch pitfalls section (add discovered pitfalls)
-├─ Patch references (add a reference file)
-└─ Patch examples (update obsolete examples)
-⛔ FORBIDDEN (without user confirmation):
-├─ Modify the Philosophy section
-├─ Modify Tier thresholds
-├─ Modify Quality criteria bases
-├─ Delete loop phases (Phase 0-11)
-└─ Modify these guardrails themselves (meta-modification)
-📋 Procedure for allowed mutations:
-1. Backup: copy original section as comment in file
-2. Patch: apply change
-3. Verify: reload skill with skill\_view, verify consistency
-4. Log: save in memory "ES skill patch: "
-5. Max 1 patch per session (no batch mutation)
-```
-#### Guardrail 4 — Skill Proliferation Cap
-```
-SKILL CREATION LIMITS:
-├─ Max 5 pattern-\* skills total (over limit → offer user to consolidate)
-├─ Before creating pattern-X skill, verify no similar skill exists
-├─ If 2 pattern-\* skills have >70% similar goal\_type → CONSOLIDATE into one
-├─ Max 1 skill created per session
-└─ Each pattern-\* skill must have "last\_used" timestamp — if unused for 30 days → archive
-```
-#### Guardrail 5 — Pattern Cache Cleanup
-```
-PATTERN CACHE MAINTENANCE (every 10 completed batches):
-├─ Read pattern\_cache.json
-├─ Count total entries
-├─ If > 20 entries:
-│ └─ Sort by timestamp
-│ └─ Remove 5 oldest (save their patterns as compressed memory entry first)
-├─ If > 50 entries:
-│ └─ EMERGENCY: remove all except 10 most recent with FPR > 70%
-└─ If a goal\_type has 3+ entries with FPR < 60%:
-└─ Delete that goal\_type from cache — pattern doesn't work
-```
-#### Guardrail 6 — Project Isolation (anti-contamination)
-Lessons from one project must NOT contaminate different projects:
-```
-PROJECT ISOLATION RULES:
-├─ LEVEL 1 — Memory Store:
-│ ├─ Architecture/structure lessons are PROJECT-SPECIFIC
-│ ├─ Mark with prefix: ES[goal\_type|ProjectName|Tier]...
-│ ├─ During recall, skip entries that don't match current project
-│ └─ Example: ES[api\_crud|PolimarketWeather|T3] FPR=84%...
-├─ LEVEL 2 — Dynamic Knowledge Files:
-│ ├─ Style/architecture/convention lessons are LOCAL
-│ ├─ Write to ./.hermes/local-patterns.md in the repository
-│ ├─ Pure technology lessons (API, framework) are GLOBAL
-│ └─ Write to ~/.hermes/references/dynamic-patterns.md
-└─ "When in doubt, LOCAL": isolate the lesson in the current project
-```
-#### Guardrail 7 — Human Checkpoint (no fully autonomous skill mutation)
-```
-HUMAN CHECKPOINT for skill operations:
-├─ skill\_manage(action="create") → ask user confirmation first
-├─ skill\_manage(action="delete") → ask user confirmation ALWAYS
-├─ skill\_manage(action="edit") → only if user approved in this session
-├─ skill\_manage(action="patch") → allowed for pitfalls/references (Guardrail 3), but:
-│ └─ Notify user: "Patched  for "
-└─ skill\_manage(action="write\_file") → like patch, notify after
-```
-\*\*Exception — Dynamic Knowledge Expansion (Phase 4f):\*\* writing to dynamic knowledge files is \*\*captured knowledge, not modified behavior\*\*. These files do NOT require human checkpoint:
-- `~/.hermes/references/dynamic-patterns.md` and `./.hermes/local-patterns.md` marked `[Auto]` → autonomous ✅
-- `SKILL.md` or non-`[Auto]` references → needs human OK ⚠️
-- Creating/modifying skills → needs human OK 🛑
-#### Guardrail 8 — Session Memory Flush Cap
-```
-SESSION MEMORY CAP:
-├─ Max 3 memory entries per session
-├─ Max 1 skill patch per session
-├─ Max 1 pattern\_cache.json update per session (last batch only)
-└─ If session produces more data than this:
-└─ Save only top-N by impact (sort by severity × FPR delta)
-└─ Rest go in final report as "lessons not persisted (cap reached)"
-```
-#### Guardrail 9 — Drift Detection
-```
-DRIFT DETECTION (every 5 sessions of same goal\_type):
-├─ Compare FPR of last 5 sessions vs previous 5
-├─ If average FPR dropped > 10%:
-│ └─ ⚠️ DRIFT DETECTED — self-learning is degrading
-│ └─ Actions:
-│ ├─ Stop saving new lessons for this goal\_type
-│ ├─ Alert user: "Pattern for X is degrading, suspicious lessons"
-│ └─ Propose reset of lessons for that goal\_type
-└─ If average FPR is stable or improved:
-└─ ✅ Self-learning healthy, continue
-```
-#### Guardrail 10 — Transparency Log
-Every self-learning operation must be traceable:
-```
-SELF-LEARNING LOG (in final report of every session):
-├─ Memory entries saved: N (of which N replaced)
-├─ Pattern cache: updated/not updated (reason)
-├─ Dynamic patterns: global N new, local N new
-├─ Skill patched: yes/no (which, what, why)
-├─ Skill created: yes/no (which, with user confirmation?)
-├─ Lesson validation: N validated, N rejected (rejection reason)
-└─ Guardrails activated: list of guardrails that limited operations
-```
-\*\*The user must always know what was learned, what was modified, and what was blocked.\*\*
+### 4e — Self-Learning Guardrails (CRITICAL — 10 guardrails, non-optional)
+
+| # | Guardrail | Rule |
+|:--|:----------|:-----|
+| 1 | **Memory Budget Cap** | Max 10 ES[...] entries. If >8, replace oldest/lowest FPR. Never add — replace. |
+| 2 | **Lesson Validation** | Only save evidence-based lessons (failed test → fix). Skip anecdotes, opinions, self-referential claims. Anti-circularity test: "If this lesson were wrong, how would I know?" |
+| 3 | **Skill Mutation Protection** | Pitfalls/references/examples: auto-patch allowed. Philosophy/Tier/Quality/Guardrails/Phases: human confirmation REQUIRED. Max 1 patch/session. |
+| 4 | **Skill Proliferation Cap** | Max 5 pattern-* skills total. Consolidate if >70% similar. Max 1 created/session. Archive if unused 30 days. |
+| 5 | **Pattern Cache Cleanup** | Cleanup every 10 batches: keep ≤20 entries. If >50: EMERGENCY keep only 10 recent with FPR>70%. Delete goal_types with 3+ entries FPR<60%. |
+| 6 | **Project Isolation** | Architecture/structure lessons = PROJECT-LOCAL (./.hermes/local-patterns.md). Pure technology (API/framework) = GLOBAL (~/.hermes/references/dynamic-patterns.md). When in doubt → LOCAL. |
+| 7 | **Human Checkpoint** | skill_manage create/delete/edit → user confirmation. Patch pitfalls/references → notify after. Dynamic knowledge files ([Auto]) — autonomous. |
+| 8 | **Session Memory Flush Cap** | Max 3 memory entries/session, 1 skill patch/session, 1 pattern_cache update (last batch only). Overflow → save top-N by impact. |
+| 9 | **Drift Detection** | Every 5 sessions of same goal_type: compare FPR. If dropped >10% → stop saving, alert user, propose reset. |
+| 10 | **Transparency Log** | Final report MUST list: entries saved/replaced, cache updated, skills patched/created, lessons validated/rejected, guardrails activated. |
+
+**Self-learning is autonomous in DETECT (what to learn) but collaborative in ACT (structural changes need human consent).**
 ### 4f — Dynamic Knowledge Expansion (post 3+ retry) — Local/Global Split
-\*\*Trigger:\*\* a task required \*\*3 or more retries\*\* to pass the quality gate. This indicates knowledge worth capturing — a deprecated API, a broken pattern, a context gap.
+
+**Trigger:** 3+ retries to pass quality gate → knowledge worth capturing.
 ```
-DYNAMIC KNOWLEDGE EXPANSION:
-1. Extract the resolution rule:
-├─ What failed? (API, pattern, syntax, library)
-├─ Why did it fail? (deprecation, breaking change, context gap)
-└─ What's the solution? (the specific pattern that worked)
-2. Classify SCOPE and write to correct file:
-├─ 🌍 GLOBAL SCOPE (Pure technology — Languages, Frameworks, Public APIs):
-│ ├─ Criterion: lesson applies to ANY project using that technology
-│ ├─ Write to ~/.hermes/references/dynamic-patterns.md
-│
-├─ 📁 LOCAL SCOPE (Project architecture — Conventions, structure, internal wrappers):
-│ ├─ Criterion: lesson applies ONLY to this specific project
-│ └─ Write to ./.hermes/local-patterns.md (create if not exists)
-│
-└─ ⚠️ DEFAULT: when in doubt → LOCAL. A local pattern in another project is harmless noise. A global pattern where it doesn't belong is damage.
-3. Auto-load in future tasks (Tier 2-4):
-├─ ALWAYS read ./.hermes/local-patterns.md (if exists in current project)
-├─ Read ~/.hermes/references/dynamic-patterns.md ONLY for technologies mentioned in goal
-└─ Inject relevant rules as extra\_criteria in subagent contexts
+1. Extract: What failed? Why? What solution worked?
+2. Classify SCOPE:
+   ├─ GLOBAL (pure tech: APIs, frameworks, languages) → ~/.hermes/references/dynamic-patterns.md
+   └─ LOCAL (project architecture, conventions, wrappers) → ./.hermes/local-patterns.md
+3. Auto-load: LOCAL always, GLOBAL filtered by technologies in goal
+4. DEFAULT: when in doubt → LOCAL (harmless noise vs damaging context pollution)
 ```
-### 4g — Lesson Hierarchy (which lessons to save)
-Not all lessons have equal value. Prioritize:
-```
-LESSON PRIORITY (save only top 2-3 per batch):
-P0 — Structural (always save):
-"Per-file decomposition doesn't work for tasks with circular dependencies"
-→ Changes future decomposition strategy
-P1 — Task-specific (save if recurring):
-"Service tasks (notifications/payments) have 20% lower FPR"
-→ Add extra quality criteria for services
-P2 — Context-specific (save if project recurring):
-"FastAPI route ordering: static routes before /{param}"
-→ Pitfall to check in similar FastAPI projects
-P3 — One-off (DON'T save, log only in STATE):
-"Module XYZ had a typo in the name"
-→ Not a lesson, an isolated incident
-```
-\*\*Rule:\*\* saving everything = memory overflow + useful lessons drowned by noise. Less but better.
+### 4g — Lesson Hierarchy
+
+| Priority | Type | Rule |
+|:--------:|:-----|:-----|
+| P0 | Structural | Always save (changes future decomposition) |
+| P1 | Task-specific | Save if recurring (add extra quality criteria) |
+| P2 | Context-specific | Save if project recurring (pitfall to check) |
+| P3 | One-off | **NEVER save** — log in STATE only |
+
+**Rule:** less but better. Max 2-3 lessons per batch.
 ### 4h — Skill Self-Improvement
 - If a decomposition pattern succeeds 3+ times → save as reusable pattern
 - If a pitfall is discovered → add to pitfalls section (general, not project-specific)
@@ -1434,6 +1305,14 @@ Detecting tier by keyword matching (e.g. `'api'` in goal text) is fragile. The s
 ## Version History
 
 ```
+v0.8.0 — Performance & accuracy improvements: timeout raised to 300s (aligns
+         with B5 orchestrator depth-3), 4-Band Filter word-boundary matching
+         (prevents false Tier 3 from "api" substring), Clean Code filtered to
+         code-only tasks + FastAPI HTTPException recognition, Tier 1 Fast-Path
+         expanded (≤2 files + no deps = guaranteed Tier 1), Global Re-Check
+         conditioned (skip if <5 files or tier<3), guardrails compressed from
+         135→20 lines (compact table format), Phase 4f/4g compressed.
+         1497→1358 lines (-9%).
 v0.7.2 — Benchmark-driven fixes: recall enforcement (Phase 4c — matched patterns
          MUST be used, calibration mandatory before decompose, FPR enforcement),
          timeout guard (Phase 3d point 5 — hard cap 180s, timeout escalation
