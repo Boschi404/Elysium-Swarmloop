@@ -92,28 +92,31 @@ When two sections describe alternative policies for the same moment in the flow,
 \*\*Example:\*\* if Quality Gate says "accept task below threshold" but Escalation Ladder says "escalate to user" → Escalation wins. If Phase 2 says "dispatch 50 streaming" but Context Protection says "max 20-25 in-flight" → Context Protection wins.
 ---
 ### 🎯 4-Band Filter — First Checkpoint (BEFORE everything)
-\*\*BEFORE loading the rest of the skill\*\*, categorize the request into 4 bands. This determines HOW MUCH of the skill to activate.
-| Band | Examples | Tier | Load skill? | Subagents | Loop? |
-|------|----------|------|-------------|-----------|-------|
-| \*\*Low\*\* | typo, fix bug, rename, change color, single command | 1 | ❌ No (saves 8K tokens) | 0 | No, direct |
-| \*\*Medium\*\* | add endpoint, create function, test, refactor | 2 | ✅ Yes | 1-5 | 1 iteration |
-| \*\*High\*\* | system, auth module, full API, multi-file feature | 3 | ✅ Yes | 5-30 | ∞ converge |
-| \*\*Extreme\*\* | full-stack, e-commerce, MVP from zero, 50+ files | 4 | ✅ Yes | 30-100 | ∞ + orchestrator |
-\*\*Token saving rule:\*\*
+
+**BEFORE loading the rest of the skill**, categorize the request into 4 bands. This determines WHETHER to load the skill. Subagent numbers are in the Tier Auto-Detection table (Phase 0a) — this table is a pure on/off switch.
+
+| Band | Examples | Load skill? | Loop? |
+|------|----------|-------------|-------|
+| **Low** | typo, fix bug, rename, single command | ❌ No (saves 8K tokens) | No, direct |
+| **Medium** | add endpoint, create function, test, refactor | ✅ Yes | 1 iteration |
+| **High** | system, auth module, full API, multi-file feature | ✅ Yes | ∞ converge |
+| **Extreme** | full-stack, e-commerce, MVP from zero, 50+ files | ✅ Yes | ∞ + orchestrator |
+
+**Token saving rule:**
 ```
 IF band == "low":
 └─ DON'T load SKILL.md (8K tokens saved)
 └─ Execute directly: read, edit, commit, push
 └─ No loop, no subagents, no plan
 IF band == "medium":
-└─ Load SKILL.md, fast path: decompose → dispatch 1-5 → gather → done
+└─ Load SKILL.md, fast path: decompose → dispatch → gather → done
 └─ Max 1 retry, no self-learning
 IF band == "high" or "extreme":
 └─ Load full SKILL.md
 └─ Full loop with all phases
 └─ Self-learning active
 ```
-\*\*When in doubt, prefer the HIGHER band.\*\* It's better to load the skill for a medium task and discover it was low, than to skip it for a high task.
+**When in doubt, prefer the HIGHER band.** It's better to load the skill for a medium task and discover it was low, than to skip it for a high task.
 
 #### 🔨 Hard Trigger Activation (bypass 4-Band Filter)
 
