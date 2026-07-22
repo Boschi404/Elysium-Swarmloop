@@ -119,6 +119,8 @@ Due benchmark eseguiti con **Elysium Swarmloop v5.2.0** su Hermes Agent (deepsee
 
 ## 📈 Analisi dei Risultati
 
+> ⚠️ **SCORING CAVEAT (v0.8.2 audit):** La sotto-dimensione `correctness` è invariante a `40.0/40` su tutti i task non-timeout (54/54 task analizzati). La variazione dei punteggi proviene da `completeness`, `efficiency`, `robustness`, e `clarity` — mai da `correctness`. I claim di "self-improving" basati sul punteggio aggregato sono quindi limitati alle dimensioni di stile, non di correttezza del codice. Audit completo in `risultati/AUDIT_SCORING_ENGINE.md`.
+
 ### Punti di Forza di Elysium Swarmloop
 
 | Aspetto | Risultato |

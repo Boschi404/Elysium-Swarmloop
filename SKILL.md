@@ -1,7 +1,7 @@
 ---
 name: elysium-swarmloop
 description: "The Self-Improving Multi-Agent Orchestration Engine. Always-on autonomous agentic loop: prompt enhancement → deep research → massive scatter-gather (up to 100 subagents) → streaming quality gate (immediate retry on arrival) → self-learning iteration → loop until goal achieved with zero human intervention. Auto-activates on EVERY prompt."
-version: 0.8.1
+version: 0.8.2
 author: Boschi404 + ffazecaldy
 testing-agent: Hermes Agent
 tags: [agentic, auto, workflow, multi-agent, quality, research, iteration, scatter-gather, streaming-gather, self-learning, autonomous-loop, meta-scaling, orchestrator-depth2, self-improving, swarmloop, guardrails, security-shield, context-protection, contracts, clarification, plan-integration, sandbox-racing, quality-first, e2e-tested]
@@ -581,6 +581,8 @@ CON (Sandbox Racing):
 4. If ALL variants fail → escalate to Actor-Critic (Phase 3f)
 5. Never use Racing for file-creation tasks that modify shared files (conflict risk)
 6. Max 5 variants (respects context budget — Phase 3d)
+
+**⚠️ COST WARNING:** N variants in parallel = N× API calls/tokens vs sequential retry. Racing trades token cost for wall-clock speed. Activate only for critical/hotfix tasks (where time > cost), not for routine tasks where sequential retry is cheaper. Quality-First Mode auto-activates 5 variants — be aware this costs 5× per task.
 
 **Why it's better than sequential retry:** 5 approaches in parallel find the solution in 1/5 the time. The right approach (async vs sync, library X vs Y) is found by exploration, not repetition.
 
@@ -1305,6 +1307,14 @@ Detecting tier by keyword matching (e.g. `'api'` in goal text) is fragile. The s
 ## Version History
 
 ```
+v0.8.2 — Accountability release: auditing mission. No feature changes. Added
+         AUDIT_SCORING_ENGINE.md documenting invariant correctness=40.0 across all
+         benchmarks (54/54 non-timeout tasks). Fixed hygiene: removed hardcoded
+         user path (leob3) from SETUP.md, aligned README badge to v0.8.2. Added
+         explicit cost warning to Sandbox Racing (Phase 3a-quinques). Version
+         History now documents the v5.1.0→v0.6.0 rebrand.
+         Known issue tracked: DataScoringEngine returns invariant scores for
+         data tasks — NOT fixable in this skill (external benchmark code).
 v0.8.1 — Timeout calibrated to 450s (optimal sweet spot: code_review 265s + 185s
          buffer, eliminates v0.8.0 Re-Test regression on bug_fixing/algorithm).
          Phase 3d + 3j-bis aligned to 450s.
@@ -1358,8 +1368,13 @@ Lesson Hierarchy (4g), Skill Ecosystem Integration (Phase 10),
 Long Session Management (Phase 11), B1-B6 Anti-Bottleneck (2a).
 480→920 lines.
 v5.1.0 — Tier definitions, quality scoring rubric, Phase 7 Self-Execution
-Infrastructure (bootloader, SQLite pattern persistence, MCP integration guide,
-cron integration, GitHub sync). Added 6 new pitfalls. 391→480 lines.
+         Infrastructure (bootloader, SQLite pattern persistence, MCP integration guide,
+         cron integration, GitHub sync). Added 6 new pitfalls. 391→480 lines.
+         
+         ▲ VERSION RESET: After v5.1.0, the project was rebranded from
+         "agentic-auto-pilot" to "Elysium Swarmloop" and the versioning was reset
+         to start from v0.1.0 for the public release. v5.1.0 and v0.6.0 are
+         functionally consecutive — the jump is cosmetic, not a regression.
 v5.0.0 — Elysium Swarmloop: rebranded from agentic-auto-pilot,
 cleaned project-specific pitfalls, added depth-2 orchestration,
 self-improvement guardrails, version bump discipline.

@@ -57,17 +57,17 @@ Il bootloader (`scripts/init-state.sh`) usa `jq` per costruire e leggere JSON.
 
 ```bash
 # Crea directory bin se non esiste
-mkdir -p /c/Users/leob3/bin
+mkdir -p ~/bin
 
 # Scarica jq-win64.exe
-curl -L -o "C:/Users/leob3/bin/jq.exe" "https://github.com/jqlang/jq/releases/download/jq-1.7/jq-win64.exe"
+curl -L -o "$HOME/bin/jq.exe" "https://github.com/jqlang/jq/releases/download/jq-1.7/jq-win64.exe"
 
 # Rendi eseguibile
-chmod +x /c/Users/leob3/bin/jq.exe
+chmod +x "$HOME/bin/jq.exe"
 
 # Aggiungi al PATH (permanente in ~/.bashrc)
-export PATH="/c/Users/leob3/bin:$PATH"
-echo 'export PATH="/c/Users/leob3/bin:$PATH"' >> ~/.bashrc
+export PATH="$HOME/bin:$PATH"
+echo 'export PATH="$HOME/bin:$PATH"' >> ~/.bashrc
 
 # Verifica
 jq --version
@@ -84,9 +84,11 @@ Via terminale Python (esegui una volta):
 
 ```bash
 python -c "
-import sqlite3
-conn = sqlite3.connect(r'C:\Users\leob3\.hermes\hermes.db')
-with open(r'C:\Users\leob3\AppData\Local\hermes\skills\autonomous-agents\elysium-swarmloop\references\pattern-store.sql', 'r') as f:
+import sqlite3, os
+hermes_db = os.path.expanduser('~/.hermes/hermes.db')
+pattern_sql = os.path.expanduser('~/AppData/Local/hermes/skills/autonomous-agents/elysium-swarmloop/references/pattern-store.sql')
+conn = sqlite3.connect(hermes_db)
+with open(pattern_sql, 'r') as f:
     conn.executescript(f.read())
 conn.commit()
 print('Pattern store inizializzato OK')

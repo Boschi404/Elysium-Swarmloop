@@ -8,7 +8,7 @@
 </p>
 
 <p align="center">
-  <img src="https://img.shields.io/badge/version-0.7.0-34d399?style=flat-square&labelColor=0f172a">
+  <img src="https://img.shields.io/badge/version-0.8.2-34d399?style=flat-square&labelColor=0f172a">
   <img src="https://img.shields.io/badge/license-MIT-22d3ee?style=flat-square&labelColor=0f172a">
   <img src="https://img.shields.io/badge/subagents-100-a78bfa?style=flat-square&labelColor=0f172a">
   <img src="https://img.shields.io/badge/depth-2-fbbf24?style=flat-square&labelColor=0f172a">
@@ -81,7 +81,7 @@ delegation:
 
 These settings are not optional tweaks. They are the difference between "it runs" and "it delivers production-quality results at scale."
 
-## What's New in v0.7.0
+- **v0.8.2** — Auditing release: documented invariant correctness scorer, hygiene fixes, cost transparency
 
 ### Phase 0.5a — Clarification Interview
 Before the loop starts, the system asks 5–6 pre-flight questions to disambiguate goals, identify constraints, and surface hidden requirements. This prevents wasted iterations caused by ambiguous or underspecified goals.
