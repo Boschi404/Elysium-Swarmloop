@@ -1,7 +1,7 @@
 ---
 name: elysium-swarmloop
 description: "The Multi-Agent Orchestration Engine with self-learning mechanisms. 906 lines (down from 1458). Fixes: #1 self-learning persistence (pattern_cache.json in skill_dir), #2 Pydantic __fields__ excluded for /tests/, #3 FastAPI HTTPException recognized, #4 4-Band Filter thresholds raised, #5 Global Re-Check conditional (<8 files skip), #6 graceful degradation (partial result on timeout), #7 pre-emptive .partial save every 120s."
-version: 1.0.0
+version: 0.9.1
 author: Boschi404 + ffazecaldy
 testing-agent: Hermes Agent
 tags: [agentic, auto, workflow, multi-agent, quality, research, iteration, scatter-gather, streaming-gather, self-learning, autonomous-loop, meta-scaling, orchestrator-depth2, self-improving, swarmloop, guardrails, security-shield, context-protection, contracts, clarification, plan-integration, sandbox-racing, quality-first, e2e-tested]
@@ -775,7 +775,7 @@ Run validation: `python scripts/e2e_test.py`
 ## Version History
 
 ```
-v1.0.0 — Skill problems fix release. 7 fixes, 1458→906 lines (-38%).
+v0.9.1 — Skill problems fix release + 4-Band Filter unification. 7 fixes, 1458→965 lines (-34%).
 
          FIX #1 (Self-learning persistence): pattern_cache.json now saved to
          SKILL DIRECTORY (not ~/.hermes/). Each hermes chat session is isolated —
