@@ -8,11 +8,13 @@
 </p>
 
 <p align="center">
-  <img src="https://img.shields.io/badge/version-0.8.2-34d399?style=flat-square&labelColor=0f172a">
+  <img src="https://img.shields.io/badge/version-0.8.3-34d399?style=flat-square&labelColor=0f172a">
   <img src="https://img.shields.io/badge/license-MIT-22d3ee?style=flat-square&labelColor=0f172a">
   <img src="https://img.shields.io/badge/subagents-100-a78bfa?style=flat-square&labelColor=0f172a">
   <img src="https://img.shields.io/badge/depth-2-fbbf24?style=flat-square&labelColor=0f172a">
 </p>
+
+> ⚠️ **Stato di verifica:** i claim di auto-miglioramento non sono ancora confermati da benchmark affidabili. L'audit v0.8.2 ha dimostrato che il correctness scorer era invariante. Vedi `risultati/AUDIT_SCORING_ENGINE.md`.
 
 ## What is Elysium Swarmloop?
 
@@ -21,7 +23,7 @@ A Hermes Agent skill that transforms every prompt into an autonomous agentic wor
 - **Massive parallelism** — up to 100 subagents per batch
 - **Hierarchical orchestration** — depth-2: orchestrators spawn leaf workers
 - **Streaming quality gate** — retry failures immediately, don't wait for batch completion
-- **Self-learning** — captures patterns in SQLite, calibrates granularity, improves iteration after iteration
+- **Self-learning** — captures patterns in SQLite, calibrates granularity, improves iteration after iteration *(mechanism implemented; efficacy not yet independently verified — see audit)*
 - **Zero human intervention** — the loop keeps going until the goal is achieved
 - **Tier-based execution** — Tier 1 (fast-path) to Tier 4 (full epic), auto-detected
 

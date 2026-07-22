@@ -1,7 +1,7 @@
 ---
 name: elysium-swarmloop
-description: "The Self-Improving Multi-Agent Orchestration Engine. Always-on autonomous agentic loop: prompt enhancement → deep research → massive scatter-gather (up to 100 subagents) → streaming quality gate (immediate retry on arrival) → self-learning iteration → loop until goal achieved with zero human intervention. Auto-activates on EVERY prompt."
-version: 0.8.2
+description: "The Multi-Agent Orchestration Engine with self-learning mechanisms (efficacy not yet independently verified — see risultati/AUDIT_SCORING_ENGINE.md). Always-on autonomous agentic loop: prompt enhancement → deep research → massive scatter-gather (up to 100 subagents) → streaming quality gate (immediate retry on arrival) → self-learning iteration → loop until goal achieved with zero human intervention. Auto-activates on EVERY prompt."
+version: 0.8.3
 author: Boschi404 + ffazecaldy
 testing-agent: Hermes Agent
 tags: [agentic, auto, workflow, multi-agent, quality, research, iteration, scatter-gather, streaming-gather, self-learning, autonomous-loop, meta-scaling, orchestrator-depth2, self-improving, swarmloop, guardrails, security-shield, context-protection, contracts, clarification, plan-integration, sandbox-racing, quality-first, e2e-tested]
@@ -12,8 +12,10 @@ user_preferences:
   test_command: "pytest -q"
 ---
 # Elysium Swarmloop
-The Self-Improving Multi-Agent Orchestration Engine
-\*Towards Agentic Utopia.\*
+The Multi-Agent Orchestration Engine with self-learning mechanisms
+*Towards Agentic Utopia.*
+
+> ⚠️ **Nota di trasparenza:** i claim di auto-miglioramento in questo documento si riferiscono al meccanismo implementato (Phase 4), non a un'efficacia misurata in modo indipendente. L'audit v0.8.2 (`risultati/AUDIT_SCORING_ENGINE.md`) ha dimostrato che il `correctness` scorer del benchmark era invariante (40.0/40 su 54/54 task), rendendo non verificabili i punteggi di benchmark precedenti. In v0.8.3 il `DataScoringEngine` è stato fixato nel repo Elysium-Bench (i punteggi ora variano con l'input). Il `correctness` dei task code resta un ceiling effect dei test (tutti passano → 40/40) — non un bug dello scorer. Nuovi benchmark con scorer fixato sono in attesa di esecuzione.
 
 ## Required Config (BEFORE FIRST USE)
 
@@ -58,6 +60,8 @@ Override any preference by editing the `user_preferences:` section at the top of
 ## Philosophy
 
 **I don't follow a workflow. I am the loop. And I improve myself.**
+
+> ⚠️ Il claim "I improve myself" si riferisce al meccanismo di Phase 4 (pattern capture, recall, calibration). La sua efficacia quantitativa non è ancora verificata con scorer affidabili — vedi nota di trasparenza all'inizio del documento.
 
 Elysium Swarmloop is a self-improving autonomous orchestration engine that:
 1. \*\*Decides what to do next\*\* — state machine, not recipe
@@ -1307,6 +1311,27 @@ Detecting tier by keyword matching (e.g. `'api'` in goal text) is fragile. The s
 ## Version History
 
 ```
+v0.8.3 — Transparency release: aligned frontmatter to audit reality (description
+         softened from "Self-Improving" to "self-learning mechanisms, efficacy
+         not yet independently verified"). Added transparency note at top of
+         SKILL.md and README.md. Added caveat to Philosophy "I improve myself"
+         claim. README self-learning bullet now carries audit asterisk. README
+         badge updated to v0.8.3. Version history reference to rebrand explained.
+         
+         SCORER FIX (in Elysium-Bench repo, not here):
+         DataScoringEngine._rubric_check() was returning static max_score * 0.3
+         when no rubric.yaml existed → invariant 58/100. Fixed with content-aware
+         heuristics (SQL keywords, Pandas usage, error handling, comments).
+         Test: good solution=50.0 vs bad solution=4.5 (was both 58.0).
+         CodeScoringEngine correctness=40.0 is NOT a bug — it's a ceiling effect
+         (all tests pass → max_score). Varying test difficulty would fix this.
+         
+         TODO (claims not yet updated with audit reference):
+         - BENCHMARK_RESULTS.md "100% test pass" claim needs asterisk
+         - README "What's New" sections reference old version numbers
+         - SKILL.md Phase 4d "FPR should improve" needs caveat
+         - SKILL.md Phase 5 report template "Self-Learning" section needs caveat
+         - New benchmark run with fixed DataScoringEngine not yet executed
 v0.8.2 — Accountability release: auditing mission. No feature changes. Added
          AUDIT_SCORING_ENGINE.md documenting invariant correctness=40.0 across all
          benchmarks (54/54 non-timeout tasks). Fixed hygiene: removed hardcoded
