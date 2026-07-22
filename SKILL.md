@@ -359,6 +359,7 @@ TASK: {description} | YOUR ID: {task_id} | THRESHOLD: {threshold}/10 | MAX ITERA
 QUALITY CRITERIA: {custom_criteria}
 SELF-AWARENESS: You are one of {total_tasks} parallel agents. Evaluated automatically. Below threshold = retry with feedback.
 INSTRUCTIONS: (1) implement fully (no stubs/TODO), (2) self-verify, (3) fix if below threshold (max 3 tries), (4) return honest score + gaps.
+PARTIAL SAVE: write partial results to .partial file every 120s. On timeout, main agent reads it.
 RETURN FORMAT: ## RESULT - task_id - status: pass|fail|partial - quality_score: N/10 - gaps: [list] - files_created: [paths]
 ```
 ### 2d — Streaming Gather
@@ -435,11 +436,12 @@ VALIDATE RESULT (mandatory for code tasks):
 5. FORMAT & ERROR HANDLING VALIDATION (for data/DB/API tasks):
    ├─ For SQL tasks: verify parameterized queries — grep for "?" or "%s" or ":param" after "execute("
    │   └─ If raw string interpolation found → ❌ RETRY: "Use parameterized queries"
-   ├─ For API tasks: verify error handling — grep for "try:" after every "open(", ".request(", ".execute("
-   │   └─ If try/except missing → ❌ RETRY: "Add error handling around external calls"
+   ├─ For API tasks: verify error handling — grep for "try:" OR "HTTPException" after external calls
+   │   └─ If neither found → ❌ RETRY: "Add error handling (try/except or raise HTTPException)"
    ├─ For data analysis tasks: verify output format matches expected schema
    │   └─ Check: output type matches spec (dict, list, DataFrame, str)
    └─ For ALL tasks: grep for deprecated patterns from Phase 3a check 4
+       └─ EXCLUDES: files in /tests/, /test_*.py, /conftest.py
        └─ If found → ❌ RETRY with specific deprecation feedback
 ```
 If physical validation fails → **immediate retry with specific feedback** (no silent failure).
