@@ -1,7 +1,7 @@
 ---
 name: elysium-swarmloop
-description: "The Multi-Agent Orchestration Engine with self-learning mechanisms and automatic solution-space exploration. 1025+ lines. v0.10.0: Phase 0.6 Solution-Space Exploration (3-strategy scouts, trade-off matrix, anti-bias check, synthesis, pattern capture)."
-version: 0.10.0
+description: "The Multi-Agent Orchestration Engine with self-learning mechanisms, automatic solution-space exploration, and self-updating bootstrap. v0.10.1: Auto-Update Bootstrap (git-based version check at every activation, install.sh git init)."
+version: 0.10.1
 author: Boschi404 + ffazecaldy
 testing-agent: Hermes Agent
 tags: [agentic, auto, workflow, multi-agent, quality, research, iteration, scatter-gather, streaming-gather, self-learning, autonomous-loop, meta-scaling, orchestrator-depth2, self-improving, swarmloop, guardrails, security-shield, context-protection, contracts, clarification, plan-integration, sandbox-racing, quality-first, e2e-tested, solution-exploration, trade-off-analysis, multi-strategy]
@@ -45,6 +45,40 @@ hermes config set approvals.mode smart
 ```
 
 > **Why critical**: with defaults (3 subagents), Tier 4 tasks run at 3% of possible speed. The loop needs ALL 100 slots to reach full potential.
+
+## Auto-Update Bootstrap (v0.10.1+)
+
+This skill is **self-maintaining**. Every activation checks GitHub for a newer version.
+
+### How it works
+
+At session start, BEFORE the 4-Band Filter:
+
+```
+1. cd $SKILL_DIR && git fetch origin main 2>/dev/null
+2. Compare LOCAL vs REMOTE commit hash
+3. If REMOTE is ahead → notify user ONCE:
+   "🔄 Elysium Swarmloop v{NEW} available (you're on v{OLD}).
+    Run: cd $SKILL_DIR && git pull && /reload-skills"
+4. Continue with CURRENT version (never auto-update without consent)
+```
+
+**Why not auto-update?** Guardrail #7 (Human Checkpoint): skill mutations require user consent. Even beneficial updates are structural changes — the user must opt in.
+
+### Install (if not already a git repo)
+
+```bash
+cd ~/AppData/Local/hermes/skills/autonomous-agents/elysium-swarmloop
+git init && git remote add origin https://github.com/Boschi404/Elysium-Swarmloop.git
+git fetch origin && git reset --hard origin/main
+```
+
+After install, `git pull` is all you need to stay current. Then `/reload-skills`.
+
+### Fresh install
+```bash
+bash scripts/install.sh   # sets up git automatically
+```
 
 ## User Preferences
 
@@ -840,7 +874,7 @@ Last checkpoint: turn {turn}
 Run validation: `python scripts/e2e_test.py`
 
 ---
-## Pitfalls (condensed — 21 rules)
+## Pitfalls (condensed — 22 rules)
 
 | # | Pitfall | Fix |
 |:--|:--------|:----|
@@ -865,10 +899,18 @@ Run validation: `python scripts/e2e_test.py`
 | 19 | Plan skipped (5+ files) | Write plan before dispatch |
 | 20 | Sandbox Racing on shared files | Racing is for isolated bugfixes only |
 | 21 | Skipping Phase 0.6 exploration | Tier 3+ defaults to 1st approach. Always run 3 scouts or load cached winner. |
-|---
+| 22 | Ignoring auto-update notification | "v{NEW} available" means real improvements. Run git pull + /reload-skills. |
+---
 ## Version History
 
 ```
+v0.10.1 — Auto-Update Bootstrap. Skill now self-maintaining: git-based version
+         check at every activation (compare LOCAL vs REMOTE, notify user if
+         newer available). Install.sh updated: auto-inits git repo in skill_dir
+         with origin→GitHub remote. git pull + /reload-skills = instant update.
+         Never auto-updates without consent (Guardrail #7). New pitfall #22.
+         Bootstrap section added after Required Config.
+
 v0.10.0 — Solution-Space Exploration. Phase 0.6 adds automatic multi-strategy
          exploration for ALL Tier 3+ tasks. 3 strategy scouts (biased: simplicity,
          scalability, speed) → trade-off matrix (5 axes, weighted scoring) →

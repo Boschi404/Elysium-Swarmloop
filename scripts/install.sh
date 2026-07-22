@@ -8,7 +8,7 @@
 # =============================================================================
 set -euo pipefail
 
-VERSION="0.7.0"
+VERSION="0.10.1"
 REPO_URL="https://github.com/Boschi404/Elysium-Swarmloop.git"
 HERMES_SKILLS_DIR="$HOME/AppData/Local/hermes/skills"
 SKILL_DIR="$HERMES_SKILLS_DIR/autonomous-agents/elysium-swarmloop"
@@ -108,6 +108,26 @@ pass "SKILL.md installata ($LINES righe)"
 [ -f "$SKILL_DIR/scripts/init-state.sh" ] && pass "Bootloader: scripts/init-state.sh"
 [ -f "$SKILL_DIR/references/pattern-store.sql" ] && pass "Pattern store: references/pattern-store.sql"
 [ -f "$SKILL_DIR/scripts/install.sh" ] && pass "Installer: scripts/install.sh"
+
+# Setup git for auto-update (v0.10.1+)
+if command -v git &>/dev/null; then
+  if [ ! -d "$SKILL_DIR/.git" ]; then
+    info "Inizializzo git per auto-update..."
+    cd "$SKILL_DIR"
+    git init -q 2>/dev/null || true
+    git remote add origin "$REPO_URL" 2>/dev/null || git remote set-url origin "$REPO_URL" 2>/dev/null || true
+    git fetch origin main -q 2>/dev/null || true
+    git reset --hard origin/main -q 2>/dev/null || true
+    pass "Git auto-update configurato (git pull per aggiornamenti)"
+  else
+    # Git already exists, just update
+    cd "$SKILL_DIR"
+    git fetch origin main -q 2>/dev/null || true
+    pass "Git auto-update: repo già configurato, fetch eseguito"
+  fi
+else
+  warn "Git non trovato — auto-update non disponibile. Installa git per abilitarlo."
+fi
 
 # =============================================================================
 # STEP 3 — VERIFICA CONFIG.YAML
