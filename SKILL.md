@@ -1,10 +1,10 @@
 ---
 name: elysium-swarmloop
-description: "The Multi-Agent Orchestration Engine with self-learning mechanisms. 906 lines (down from 1458). Fixes: #1 self-learning persistence (pattern_cache.json in skill_dir), #2 Pydantic __fields__ excluded for /tests/, #3 FastAPI HTTPException recognized, #4 4-Band Filter thresholds raised, #5 Global Re-Check conditional (<8 files skip), #6 graceful degradation (partial result on timeout), #7 pre-emptive .partial save every 120s."
-version: 0.9.1
+description: "The Multi-Agent Orchestration Engine with self-learning mechanisms and automatic solution-space exploration. 1025+ lines. v0.10.0: Phase 0.6 Solution-Space Exploration (3-strategy scouts, trade-off matrix, anti-bias check, synthesis, pattern capture)."
+version: 0.10.0
 author: Boschi404 + ffazecaldy
 testing-agent: Hermes Agent
-tags: [agentic, auto, workflow, multi-agent, quality, research, iteration, scatter-gather, streaming-gather, self-learning, autonomous-loop, meta-scaling, orchestrator-depth2, self-improving, swarmloop, guardrails, security-shield, context-protection, contracts, clarification, plan-integration, sandbox-racing, quality-first, e2e-tested]
+tags: [agentic, auto, workflow, multi-agent, quality, research, iteration, scatter-gather, streaming-gather, self-learning, autonomous-loop, meta-scaling, orchestrator-depth2, self-improving, swarmloop, guardrails, security-shield, context-protection, contracts, clarification, plan-integration, sandbox-racing, quality-first, e2e-tested, solution-exploration, trade-off-analysis, multi-strategy]
 user_preferences:
   language: "italiano"
   auto_commit: true
@@ -130,28 +130,30 @@ If the user explicitly includes these keywords in their goal, **the 4-Band Filte
 **Rule**: these keywords override band detection. Even a "Low" request like "fix typo" becomes Tier 2 if prefixed with "attiva elysium, fixa il typo".
 ---
 ## The Core Loop
-```
-while goal\_not\_achieved:
-state = assess(goal, done, gaps)
-if state.is\_done: break
-decide() # what to do next based on state
-decompose() # break remaining work into tasks
-scatter() # dispatch all in parallel
-stream() # process each result as it arrives
-# immediate retry on failures
-learn() # save patterns, calibrate, improve
+```python
+while goal_not_achieved:
+    state = assess(goal, done, gaps)
+    if state.is_done: break
+    decide()        # what to do next based on state
+    explore()       # (Tier 3+) multi-strategy exploration, pick best
+    decompose()     # break winning approach into tasks
+    scatter()       # dispatch all in parallel
+    stream()        # process each result as it arrives
+                    # immediate retry on failures
+    learn()         # save patterns, calibrate, improve
 ```
 ---
 ## 🚀 Quick Start
-```
 GOAL: "Crea sistema di prenotazione ristorante"
+
 1. STATE INIT → tier 3, 50 subagenti, soglia 7/10
-2. DECOMPOSE → 40 task atomici su 40 file diversi
-3. SCATTER → dispatch 40 subagenti in parallelo
-4. STREAM → processa streaming: 42 pass, 8 fail → retry immediati
-5. CONVERGE → 3 iterazioni, 100% pass
-6. LEARN → salva pattern "decomposizione per\_file per CRUD"
-7. REPORT → first-pass 84%, qualità 8.6/10, 5 minuti
+2. EXPLORE → 3 strategy scout: monolith vs microservices vs layered. Winner: layered (score 8.2/10)
+3. DECOMPOSE → 40 task atomici su 40 file diversi (layered approach)
+4. SCATTER → dispatch 40 subagenti in parallelo
+5. STREAM → processa streaming: 42 pass, 8 fail → retry immediati
+6. CONVERGE → 3 iterazioni, 100% pass
+7. LEARN → salva pattern "layered per api_crud" + "decomposizione per_file per CRUD"
+8. REPORT → first-pass 84%, qualità 8.6/10, 5 minuti
 ```
 ---
 ## Phase 0 — Autonomous Loop Engine (ALWAYS ACTIVE)
@@ -241,6 +243,97 @@ If project exists (not greenfield), scan before creating files:
 4. Inject conventions as quality criteria in every subagent
 ```
 New code matches existing code style. No "why is this file here" surprises.
+
+---
+
+## Phase 0.6 — Solution-Space Exploration (Tier 3+ AUTO)
+
+**Activation:** automatic for ALL Tier 3+ tasks. Not gated behind keywords or retry failures. Goal: find the best architectural approach BEFORE committing 50 subagents to one path.
+
+### 0.6a — Strategy Generation
+
+Spawn 3 "strategy scouts" (leaf, fast-tracked) in parallel. Each proposes ONE distinct architectural approach:
+
+```
+SCOUT PROMPT:
+You are a strategy scout. Given: "{goal}"
+Propose ONE architectural approach. Do NOT implement.
+Return STRUCTURED JSON:
+{
+  "approach": "<name>",
+  "architecture": "<2-3 sentence description>",
+  "key_decisions": ["<d1>", "<d2>", "<d3>"],
+  "pros": ["<pro1>", "<pro2>", "<pro3>"],
+  "cons": ["<con1>", "<con2>", "<con3>"],
+  "complexity": <1-10>,
+  "risk": <1-10>,
+  "estimated_subagents": <N>,
+  "approach_type": "monolith|microservices|pipeline|plugin|layered|event-driven|other"
+}
+```
+
+**Scout biases (one per scout):** "prefer simplicity", "prefer scalability", "prefer speed of implementation". Each scout gets ONE bias — ensures genuinely different approaches, not 3 copies of the same idea.
+
+**Rules:** LEAF (cannot spawn further). Timeout: 120s each. Invalid JSON → use remaining scouts. ≤ 2 scouts available → skip exploration, proceed to Phase 1 directly (not enough signal).
+
+### 0.6b — Trade-off Matrix
+
+Compare all valid scout proposals on 5 weighted axes:
+
+| Axis | Weight | Meaning |
+|------|:------:|---------|
+| **Quality** | ×2.0 | Correctness, edge cases, robustness |
+| **Maintainability** | ×1.5 | Future changes, readability, modularity |
+| **Speed** | ×1.0 | Time to implement (lower subagent count = faster) |
+| **Scalability** | ×1.0 | Growth capacity, performance under load |
+| **Risk** | −1.5 | Dependencies, unknowns, integration complexity |
+
+**Weighted Score:** quality×2.0 + maintainability×1.5 + speed×1.0 + scalability×1.0 − risk×1.5
+
+### 0.6c — Winner Selection
+
+```
+1. Compute weighted score for each scout
+2. Winner = highest weighted score
+3. DOCUMENT: "Selected {approach} (score {X}) over {runner_up} (score {Y}). Reason: {top discriminating factor}."
+4. Save to plan file (Phase 0.5b): which approach chosen and why
+```
+
+**Anti-bias check:** if winner wins ONLY because of speed (speed dominates the score but quality is low) → re-evaluate with quality weight ×3.0. Fast-but-fragile loses to slower-but-solid.
+
+### 0.6d — Synthesis (if top 2 within 15%)
+
+If 2nd place score ≥ 85% of winner score → spawn 1 synthesis agent:
+
+```
+Goal: "Combine the best elements of approach A ({winner}) and approach B ({runner_up}).
+       Use A's architecture as base, incorporate B's best distinguishing idea."
+Result: hybrid approach → re-run 0.6a-0.6c cycle on the hybrid (max 1 retry).
+```
+
+### 0.6e — Hand-off to Decomposition
+
+Pass the WINNING APPROACH to Phase 1, not the raw goal:
+
+```
+Phase 1 receives:
+  goal: "{original_goal}"
+  approach: "{winning_approach_name} — {architecture summary}"
+  key_decisions: [{d1}, {d2}, {d3}]
+  approach_type: "{type}"
+```
+
+Phase 1 decomposes the STRATEGY into tasks — not the abstract goal.
+
+### 0.6f — Pattern Capture
+
+Save which approach types win for which goal types:
+
+| Goal Type | → Wins | Skip next time? |
+|-----------|--------|:---:|
+| api_creation → layered | 3+ times | ✅ Skip exploration, use layered directly |
+
+**Learning:** if approach_type X wins 3+ times for goal_type Y → skip Phase 0.6 next time, inject X directly into Phase 1. Saves 3 scout subagents per repeat.
 
 ---
 
@@ -747,7 +840,7 @@ Last checkpoint: turn {turn}
 Run validation: `python scripts/e2e_test.py`
 
 ---
-## Pitfalls (condensed — 20 rules)
+## Pitfalls (condensed — 21 rules)
 
 | # | Pitfall | Fix |
 |:--|:--------|:----|
@@ -771,10 +864,19 @@ Run validation: `python scripts/e2e_test.py`
 | 18 | Clarification skipped (Tier 3+) | Always ask 5-6 questions first |
 | 19 | Plan skipped (5+ files) | Write plan before dispatch |
 | 20 | Sandbox Racing on shared files | Racing is for isolated bugfixes only |
----
+| 21 | Skipping Phase 0.6 exploration | Tier 3+ defaults to 1st approach. Always run 3 scouts or load cached winner. |
+|---
 ## Version History
 
 ```
+v0.10.0 — Solution-Space Exploration. Phase 0.6 adds automatic multi-strategy
+         exploration for ALL Tier 3+ tasks. 3 strategy scouts (biased: simplicity,
+         scalability, speed) → trade-off matrix (5 axes, weighted scoring) →
+         winner selection with anti-bias check → synthesis if top 2 within 15% →
+         approach-type pattern capture for skip-on-repeat. Core Loop + Quick
+         Start updated with explore() step. New pitfall #21. 3 new tags.
+         906→1025+ lines.
+
 v0.9.1 — Skill problems fix release + 4-Band Filter unification. 7 fixes, 1458→965 lines (-34%).
 
          FIX #1 (Self-learning persistence): pattern_cache.json now saved to

@@ -724,6 +724,110 @@ def validate_pattern_store_schema() -> list:
 
 
 # ═════════════════════════════════════════════════════════════════════════════
+# PHASE 0.6 — SOLUTION-SPACE EXPLORATION (v0.10.0)
+# ═════════════════════════════════════════════════════════════════════════════
+
+@dataclass
+class StrategyProposal:
+    approach: str
+    architecture: str
+    key_decisions: list = field(default_factory=list)
+    pros: list = field(default_factory=list)
+    cons: list = field(default_factory=list)
+    complexity: float = 5.0
+    risk: float = 4.0
+    estimated_subagents: int = 20
+    approach_type: str = "layered"
+    scout_bias: str = ""
+
+    def __post_init__(self):
+        self._score = 0.0
+        self._axes = {}
+
+
+def strategy_scout(goal: str, bias: str) -> StrategyProposal:
+    """Simulate a strategy scout proposing ONE architectural approach."""
+    proposals = {
+        ("CRUD API", "simplicity"): StrategyProposal(
+            approach="Layered Monolith", architecture="3-layer: routes→services→models",
+            key_decisions=["FastAPI", "SQLite", "JWT auth"],
+            pros=["Simple to understand", "Fast to implement", "Easy to test"],
+            cons=["Harder to scale horizontally", "Tight coupling risk", "Single DB bottleneck"],
+            complexity=3.0, risk=2.0, estimated_subagents=15,
+            approach_type="layered", scout_bias=bias),
+        ("CRUD API", "scalability"): StrategyProposal(
+            approach="Microservices + API Gateway",
+            architecture="N services behind gateway, async messaging",
+            key_decisions=["FastAPI per service", "PostgreSQL", "RabbitMQ"],
+            pros=["Horizontal scaling", "Independent deploy", "Fault isolation"],
+            cons=["Complex orchestration", "Network latency", "Higher infra cost"],
+            complexity=7.0, risk=6.0, estimated_subagents=45,
+            approach_type="microservices", scout_bias=bias),
+        ("CRUD API", "speed"): StrategyProposal(
+            approach="Framework-First RAD",
+            architecture="Django REST + admin auto-gen",
+            key_decisions=["Django", "SQLite→Postgres later", "DRF serializers"],
+            pros=["Admin panel free", "ORM built-in", "Fastest to MVP"],
+            cons=["Less control", "Django-specific patterns", "Harder to customize"],
+            complexity=2.0, risk=2.0, estimated_subagents=10,
+            approach_type="monolith", scout_bias=bias),
+    }
+    key = goal[:50] if "API" in goal else goal[:30]
+    # Flexible matching: check if any known goal key is a substring
+    matched = None
+    for gk in proposals:
+        if gk[0].lower() in key.lower() and gk[1] == bias:
+            matched = gk
+            break
+    if matched:
+        return proposals[matched]
+    return StrategyProposal(
+        approach=f"Standard {bias}-first approach",
+        architecture=f"Architecture optimized for {bias}",
+        key_decisions=["Standard patterns", f"Optimize for {bias}"],
+        pros=[f"Good {bias} score", "Standard tooling"],
+        cons=["May trade off other qualities", f"Less optimal for non-{bias} goals"],
+        complexity=5.0, risk=4.0, estimated_subagents=20,
+        approach_type="layered", scout_bias=bias)
+
+
+def tradeoff_matrix(proposals: list) -> list:
+    """Compute weighted scores across 5 axes."""
+    weights = {"quality": 2.0, "maintainability": 1.5, "speed": 1.0,
+               "scalability": 1.0, "risk": -1.5}
+    scalability_map = {"microservices": 9, "layered": 5, "pipeline": 6,
+                       "monolith": 3, "plugin": 6, "event-driven": 8}
+    for p in proposals:
+        axes = {}
+        axes["quality"] = min(10, max(1, 10 - p.risk + (p.complexity * 0.3)))
+        axes["maintainability"] = min(10, max(1, 11 - p.complexity))
+        axes["speed"] = min(10, max(1, 10 - (p.estimated_subagents / 5)))
+        axes["scalability"] = scalability_map.get(p.approach_type, 5)
+        axes["risk"] = p.risk
+        p._score = round(sum(axes[k] * weights[k] for k in weights), 2)
+        p._axes = axes
+    return proposals
+
+
+def select_winner(proposals: list) -> tuple:
+    """Select winner with anti-bias check. Returns (winner, runner_up, reason)."""
+    if len(proposals) < 2:
+        return (proposals[0] if proposals else None, None, "only one proposal")
+    sorted_p = sorted(proposals, key=lambda p: p._score, reverse=True)
+    winner, runner_up = sorted_p[0], sorted_p[1]
+    w_axes = winner._axes
+    if w_axes.get("speed", 0) > 8 and w_axes.get("quality", 0) < 5:
+        alt = w_axes["quality"] * 3.0 + w_axes["maintainability"] * 1.5 + w_axes["speed"] * 0.5 - w_axes["risk"] * 1.5
+        if alt < runner_up._score:
+            return (runner_up, winner,
+                    f"anti-bias: {winner.approach} fast-but-fragile, promoted {runner_up.approach}")
+    if runner_up._score >= winner._score * 0.85:
+        return (winner, runner_up,
+                f"synthesis possible — {runner_up.approach} within 15% of winner")
+    return (winner, runner_up, f"clear winner: {winner.approach} (score {winner._score})")
+
+
+# ═════════════════════════════════════════════════════════════════════════════
 # SCENARIO 1 — TIER 1 FAST-PATH
 # ═════════════════════════════════════════════════════════════════════════════
 
@@ -1301,6 +1405,133 @@ def test_tier4_epic() -> None:
     print(f"\n  {CYAN}→ Scenario 4 complete: greenfield depth-2 loop verified{NC}")
 
 
+
+# ═════════════════════════════════════════════════════════════════════════════
+# SCENARIO 5 — PHASE 0.6 SOLUTION-SPACE EXPLORATION
+# ═════════════════════════════════════════════════════════════════════════════
+
+def test_phase06_exploration() -> None:
+    """Phase 0.6 — Solution-Space Exploration (Tier 3+)."""
+    section("SCENARIO 5: PHASE 0.6 Solution-Space Exploration")
+
+    # 0.6a — Strategy Generation
+    subsection("0.6a — Strategy Scouts")
+
+    scouts = [strategy_scout("Build a CRUD API for restaurants", bias)
+              for bias in ["simplicity", "scalability", "speed"]]
+
+    check(f"[Scouts] All 3 scouts return valid proposals", len(scouts) == 3)
+    check(f"[Scouts] Scout biases are distinct",
+          len(set(s.scout_bias for s in scouts)) == 3)
+    check(f"[Scouts] Approach types vary (got {[s.approach_type for s in scouts]})",
+          len(set(s.approach_type for s in scouts)) >= 2)
+
+    for i, s in enumerate(scouts):
+        check(f"[Scout {i+1}] Has approach name '{s.approach}'", len(s.approach) > 0)
+        check(f"[Scout {i+1}] Has >=2 pros", len(s.pros) >= 2)
+        check(f"[Scout {i+1}] Has >=2 cons", len(s.cons) >= 2)
+        check(f"[Scout {i+1}] Complexity 1-10 (got {s.complexity})", 1 <= s.complexity <= 10)
+        check(f"[Scout {i+1}] Risk 1-10 (got {s.risk})", 1 <= s.risk <= 10)
+        check(f"[Scout {i+1}] Has >=2 key decisions", len(s.key_decisions) >= 2)
+        check(f"[Scout {i+1}] Estimated subagents > 0", s.estimated_subagents > 0)
+
+    # 0.6b — Trade-off Matrix
+    subsection("0.6b — Trade-off Matrix")
+
+    scored = tradeoff_matrix(scouts)
+    check(f"[Matrix] All proposals have _score", all(hasattr(s, '_score') for s in scored))
+    check(f"[Matrix] All proposals have _axes dict", all(hasattr(s, '_axes') for s in scored))
+    check(f"[Matrix] All scores are numeric > 0", all(isinstance(s._score, (int, float)) and s._score > 0 for s in scored))
+
+    for i, s in enumerate(scored):
+        check(f"[Matrix {i+1}] '{s.approach}' has all 5 axes",
+              set(s._axes.keys()) == {"quality", "maintainability", "speed", "scalability", "risk"})
+        check(f"[Matrix {i+1}] Axes values in 1-10 range",
+              all(1 <= v <= 10 for v in s._axes.values()))
+
+    # 0.6c — Winner Selection
+    subsection("0.6c — Winner Selection")
+
+    winner, runner_up, reason = select_winner(scored)
+    check(f"[Winner] Winner selected: '{winner.approach}'", winner is not None)
+    check(f"[Winner] Reason provided (>5 chars)", len(reason) > 5)
+    check(f"[Winner] Winner score > 0 ({winner._score})", winner._score > 0)
+    check(f"[Winner] Runner-up identified", runner_up is not None)
+
+    # For a CRUD API, the simplicity or speed scout should win
+    is_simple_win = "simple" in winner.approach.lower() or "framework" in winner.approach.lower() or "rad" in winner.approach.lower() or "layered" in winner.approach_type
+    check(f"[Winner] CRUD API → simplicity/speed wins (got '{winner.approach}')",
+          is_simple_win)
+
+    # 0.6d — Synthesis check
+    subsection("0.6d — Synthesis Trigger")
+
+    is_synth = "synthesis" in reason.lower()
+    check(f"[Synthesis] {'Triggered' if is_synth else 'Not triggered — clear winner'}",
+          True)  # Either state is valid
+
+    # 0.6e — Hand-off
+    subsection("0.6e — Hand-off to Phase 1")
+
+    handoff = {
+        "goal": "Build a CRUD API for restaurants",
+        "approach": f"{winner.approach} — {winner.architecture}",
+        "key_decisions": winner.key_decisions,
+        "approach_type": winner.approach_type,
+    }
+    check(f"[Handoff] Approach type: '{handoff['approach_type']}'", len(handoff['approach_type']) > 0)
+    check(f"[Handoff] Key decisions preserved ({len(handoff['key_decisions'])} items)",
+          len(handoff['key_decisions']) >= 2)
+    check(f"[Handoff] Architecture description not empty",
+          len(winner.architecture) > 0)
+
+    # 0.6f — Pattern capture
+    subsection("0.6f — Pattern Capture for Self-Learning")
+
+    goal_type = "api_creation" if "api" in handoff['goal'].lower() else "unknown"
+    check(f"[Pattern] Goal type: '{goal_type}'", goal_type == "api_creation")
+    check(f"[Pattern] Mapping: {winner.approach_type} → {goal_type}",
+          winner.approach_type in ["layered", "monolith", "microservices", "pipeline", "plugin", "event-driven"])
+
+    # ── Edge Cases ──
+    subsection("Edge Cases")
+
+    # Only 1 scout (others failed/timeout)
+    single = [scouts[0]]
+    w2, r2, reason2 = select_winner(single)
+    check(f"[Edge] Single scout → winner (r2 is None)",
+          w2 is not None and r2 is None)
+
+    # Only 2 scouts
+    two = [scouts[0], scouts[1]]
+    w3, r3, reason3 = select_winner(two)
+    check(f"[Edge] Two scouts → winner + runner-up selected",
+          w3 is not None and r3 is not None)
+
+    # Anti-bias: fast-but-fragile gets rejected
+    fragile = StrategyProposal(
+        "Fast-But-Fragile", "Skip everything for speed",
+        ["No tests"], ["Super fast"], ["Breaks on edge cases"],
+        complexity=1.0, risk=9.0, estimated_subagents=3,
+        approach_type="monolith", scout_bias="speed")
+    fragile._score = 9.5
+    fragile._axes = {"quality": 2.0, "maintainability": 2.0, "speed": 10.0, "scalability": 3.0, "risk": 9.0}
+
+    solid = StrategyProposal(
+        "Solid-Well-Tested", "Test-first, careful design",
+        ["Tests first"], ["Robust", "Maintainable"], ["Slower"],
+        complexity=6.0, risk=3.0, estimated_subagents=20,
+        approach_type="layered", scout_bias="simplicity")
+    solid._score = 8.0
+    solid._axes = {"quality": 8.0, "maintainability": 7.0, "speed": 4.0, "scalability": 5.0, "risk": 3.0}
+
+    w4, r4, reason4 = select_winner([fragile, solid])
+    check(f"[AntiBias] Fast-but-fragile rejected (winner='{w4.approach}')",
+          w4.approach == "Solid-Well-Tested")
+    check(f"[AntiBias] Reason mentions anti-bias", "anti-bias" in reason4.lower())
+
+    print(f"\\n  {CYAN}→ Scenario 5 complete: Phase 0.6 exploration verified{NC}")
+
 # ═════════════════════════════════════════════════════════════════════════════
 # ADDITIONAL CROSS-CUTTING TESTS
 # ═════════════════════════════════════════════════════════════════════════════
@@ -1424,7 +1655,7 @@ def test_cross_cutting() -> None:
 
 def main() -> int:
     print(f"\n{BOLD}{CYAN}╔══════════════════════════════════════════════════════════╗{NC}")
-    print(f"{BOLD}{CYAN}║   Elysium Swarmloop v0.7.0 — End-to-End Test Suite      ║{NC}")
+    print(f"{BOLD}{CYAN}║   Elysium Swarmloop v0.10.0 — End-to-End Test Suite     ║{NC}")
     print(f"{BOLD}{CYAN}╚══════════════════════════════════════════════════════════╝{NC}")
     print(f"\n{BOLD}Date: 2026-07-15 | Mode: Full Validation | Tiers: 1-4{NC}")
 
@@ -1432,6 +1663,7 @@ def main() -> int:
     test_tier2_standard()
     test_tier3_complex()
     test_tier4_epic()
+    test_phase06_exploration()
     test_cross_cutting()
 
     # ═══ Summary ═══
