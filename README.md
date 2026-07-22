@@ -8,13 +8,13 @@
 </p>
 
 <p align="center">
-  <img src="https://img.shields.io/badge/version-0.8.3-34d399?style=flat-square&labelColor=0f172a">
+  <img src="https://img.shields.io/badge/version-0.9.0-34d399?style=flat-square&labelColor=0f172a">
   <img src="https://img.shields.io/badge/license-MIT-22d3ee?style=flat-square&labelColor=0f172a">
   <img src="https://img.shields.io/badge/subagents-100-a78bfa?style=flat-square&labelColor=0f172a">
   <img src="https://img.shields.io/badge/depth-2-fbbf24?style=flat-square&labelColor=0f172a">
 </p>
 
-> ⚠️ **Stato di verifica:** i claim di auto-miglioramento non sono ancora confermati da benchmark affidabili. L'audit v0.8.2 ha dimostrato che il correctness scorer era invariante. Vedi `risultati/AUDIT_SCORING_ENGINE.md`.
+> ⚠️ **Stato di verifica (v0.9.0):** CodeScoringEngine correctness: ceiling effect confermato (correctness=40.0 quando tests passano, 0.0 quando falliscono — vedi `risultati/correctness_falsification_test/`). DataScoringEngine fix verificato 5/5 coppie (vedi `risultati/dataengine_verification/`). Self-learning Δ non ancora ri-benchmarkato con 6+ loop.
 
 ## What is Elysium Swarmloop?
 

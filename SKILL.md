@@ -1,7 +1,7 @@
 ---
 name: elysium-swarmloop
-description: "The Multi-Agent Orchestration Engine with self-learning mechanisms (efficacy not yet independently verified — see risultati/AUDIT_SCORING_ENGINE.md). Always-on autonomous agentic loop: prompt enhancement → deep research → massive scatter-gather (up to 100 subagents) → streaming quality gate (immediate retry on arrival) → self-learning iteration → loop until goal achieved with zero human intervention. Auto-activates on EVERY prompt."
-version: 0.8.3
+description: "The Multi-Agent Orchestration Engine with self-learning mechanisms. Code correctness scorer verified: ceiling effect confirmed (correctness=40.0 when tests pass, 0.0 when tests fail — see risultati/correctness_falsification_test/). DataScoringEngine fix verified: 5/5 pairs show differentiation (see risultati/dataengine_verification/). Self-learning Δ not yet re-benchmarked with verified scorer."
+version: 0.9.0
 author: Boschi404 + ffazecaldy
 testing-agent: Hermes Agent
 tags: [agentic, auto, workflow, multi-agent, quality, research, iteration, scatter-gather, streaming-gather, self-learning, autonomous-loop, meta-scaling, orchestrator-depth2, self-improving, swarmloop, guardrails, security-shield, context-protection, contracts, clarification, plan-integration, sandbox-racing, quality-first, e2e-tested]
@@ -15,7 +15,10 @@ user_preferences:
 The Multi-Agent Orchestration Engine with self-learning mechanisms
 *Towards Agentic Utopia.*
 
-> ⚠️ **Nota di trasparenza:** i claim di auto-miglioramento in questo documento si riferiscono al meccanismo implementato (Phase 4), non a un'efficacia misurata in modo indipendente. L'audit v0.8.2 (`risultati/AUDIT_SCORING_ENGINE.md`) ha dimostrato che il `correctness` scorer del benchmark era invariante (40.0/40 su 54/54 task), rendendo non verificabili i punteggi di benchmark precedenti. In v0.8.3 il `DataScoringEngine` è stato fixato nel repo Elysium-Bench (i punteggi ora variano con l'input). Il `correctness` dei task code resta un ceiling effect dei test (tutti passano → 40/40) — non un bug dello scorer. Nuovi benchmark con scorer fixato sono in attesa di esecuzione.
+> ⚠️ **Nota di trasparenza (v0.9.0):** In v0.9.0 sono stati eseguiti test di falsificazione sullo scoring engine:
+> - **CodeScoringEngine correctness**: ceiling effect CONFERMATO. 3 soluzioni rotte → correctness=0.0 (tests falliscono), 1 soluzione corretta → correctness=40.0 (tests passano). Il scorer funziona; il problema è che tutte le soluzioni benchmark passano tutti i test. Vedi `risultati/correctness_falsification_test/`.
+> - **DataScoringEngine fix**: VERIFICATO 5/5 coppie (buona/scadente). Il fix al `_rubric_check` produce punteggi differenziati per completeness/efficiency/robustness/clarity. correctness resta 40.0 per entrambi (validate.py esce sempre con returncode=0). Vedi `risultati/dataengine_verification/`.
+> - **Self-learning Δ**: non ancora ri-benchmarkato con scorer verificato. I claim di auto-miglioramento restano "non verificati" fino a un ri-benchmark con 6+ loop.
 
 ## Required Config (BEFORE FIRST USE)
 
@@ -61,7 +64,7 @@ Override any preference by editing the `user_preferences:` section at the top of
 
 **I don't follow a workflow. I am the loop. And I improve myself.**
 
-> ⚠️ Il claim "I improve myself" si riferisce al meccanismo di Phase 4 (pattern capture, recall, calibration). La sua efficacia quantitativa non è ancora verificata con scorer affidabili — vedi nota di trasparenza all'inizio del documento.
+> ⚠️ Il claim "I improve myself" si riferisce al meccanismo di Phase 4 (pattern capture, recall, calibration). La sua efficacia quantitativa non è ancora verificata con scorer affidabili — self-learning Δ non ri-benchmarkato con 6+ loop. Vedi nota di trasparenza all'inizio del documento.
 
 Elysium Swarmloop is a self-improving autonomous orchestration engine that:
 1. \*\*Decides what to do next\*\* — state machine, not recipe
@@ -1311,6 +1314,44 @@ Detecting tier by keyword matching (e.g. `'api'` in goal text) is fragile. The s
 ## Version History
 
 ```
+v0.9.0 — Evidence-based release. NESSUN claim senza artefatto eseguibile e versionato.
+
+         FASE 1 ✅ Accesso Elysium-Bench confermato (lettura+scrittura).
+
+         FASE 2 ✅ Ceiling effect CONFERMATO:
+         - 3 soluzioni rotte (syntax error, wrong return, minimal stub)
+           → correctness=0.0 (tests falliscono)
+         - 1 soluzione corretta (CRUD completo)
+           → correctness=40.0 (tests passano, pytest returncode=0)
+         - Ipotesi confermata: il scorer FUNZIONA, le soluzioni benchmark
+           passano tutti i test → correctness è sempre al massimo.
+         - Artefatti: risultati/correctness_falsification_test/
+
+         FASE 3 ✅ DataScoringEngine fix VERIFICATO 5/5:
+         - 5 coppie (buona/scadente): SQL sales, Pandas cleaning,
+           SQL JOIN, Pandas merge, SQL subquery
+         - GOOD: 46.7-91.7 | BAD: 40.0 (costante)
+         - completeness/efficiency/robustness/clarity differenziano
+         - correctness resta 40.0 per entrambi (validate.py exit 0)
+         - Artefatti: risultati/dataengine_verification/
+
+         FASE 4 ⚠️ BLOCCATA: ri-benchmark medium con 6 loop non eseguito.
+         Motivo: richiede esecuzione Hermes+skill completa (30-60 min)
+         non fattibile in questa sessione. Prerequisito: Fase 2+3 ✅.
+         Self-learning Δ resta "non verificato".
+
+         FASE 5 ✅ Testo pubblico aggiornato SOLO con numeri tracciabili:
+         - description: riferimenti a test specifici
+         - transparency note: risultati verificati per fase
+         - Philosophy caveat: self-learning non ri-benchmarkato
+         - Version History: stato fase-per-fase esplicito
+         - README.md: caveat visibile sotto badge
+
+         KNOWN UNFIXED:
+         - correctness=40.0 per data tasks (validate.py exit 0)
+         - Self-learning Δ non verificato (richiede 6+ loop)
+         - BENCHMARK_RESULTS.md vecchi claim non aggiornati
+           (caveat già presente da v0.8.2, lasciato invariato)
 v0.8.3 — Transparency release: aligned frontmatter to audit reality (description
          softened from "Self-Improving" to "self-learning mechanisms, efficacy
          not yet independently verified"). Added transparency note at top of
