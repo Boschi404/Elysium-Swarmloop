@@ -1,7 +1,7 @@
 ---
 name: elysium-swarmloop
-description: "The Multi-Agent Orchestration Engine with self-learning mechanisms, automatic solution-space exploration, and self-updating bootstrap. v0.10.1: Auto-Update Bootstrap (git-based version check at every activation, install.sh git init)."
-version: 0.10.1
+description: "The Multi-Agent Orchestration Engine with self-learning mechanisms, automatic solution-space exploration, and self-updating bootstrap. v0.11.1: Auto-Update Bootstrap (git-based version check at every activation, install.sh git init)."
+version: 0.11.1
 author: Boschi404 + ffazecaldy
 testing-agent: Hermes Agent
 tags: [agentic, auto, workflow, multi-agent, quality, research, iteration, scatter-gather, streaming-gather, self-learning, autonomous-loop, meta-scaling, orchestrator-depth2, self-improving, swarmloop, guardrails, security-shield, context-protection, contracts, clarification, plan-integration, sandbox-racing, quality-first, e2e-tested, solution-exploration, trade-off-analysis, multi-strategy]
@@ -904,14 +904,14 @@ Run validation: `python scripts/e2e_test.py`
 ## Version History
 
 ```
-v0.10.1 — Auto-Update Bootstrap. Skill now self-maintaining: git-based version
+v0.11.1 — Auto-Update Bootstrap. Skill now self-maintaining: git-based version
          check at every activation (compare LOCAL vs REMOTE, notify user if
          newer available). Install.sh updated: auto-inits git repo in skill_dir
          with origin→GitHub remote. git pull + /reload-skills = instant update.
          Never auto-updates without consent (Guardrail #7). New pitfall #22.
          Bootstrap section added after Required Config.
 
-v0.10.0 — Solution-Space Exploration. Phase 0.6 adds automatic multi-strategy
+v0.11.0 — Solution-Space Exploration. Phase 0.6 adds automatic multi-strategy
          exploration for ALL Tier 3+ tasks. 3 strategy scouts (biased: simplicity,
          scalability, speed) → trade-off matrix (5 axes, weighted scoring) →
          winner selection with anti-bias check → synthesis if top 2 within 15% →
