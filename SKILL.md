@@ -1,7 +1,7 @@
 ---
 name: elysium-swarmloop
 description: "The Multi-Agent Orchestration Engine with self-learning mechanisms. SkillOpt gate: new patterns must pass held-out validation before entering pattern store. rejected_patterns table prevents re-proposing failed patterns. stable/candidate split ensures only verified patterns are used. Gate verification test: 3/3 passed (risultati/gate_verification/)."
-version: 1.1.0
+version: 0.11.2
 author: Boschi404 + ffazecaldy
 testing-agent: Hermes Agent
 tags: [agentic, auto, workflow, multi-agent, quality, research, iteration, scatter-gather, streaming-gather, self-learning, autonomous-loop, meta-scaling, orchestrator-depth2, self-improving, swarmloop, guardrails, security-shield, context-protection, contracts, clarification, plan-integration, sandbox-racing, quality-first, e2e-tested]
@@ -799,7 +799,7 @@ Run validation: `python scripts/e2e_test.py`
 ## Version History
 
 ```
-v1.1.0 — SkillOpt gate integration (microsoft/SkillOpt principle).
+v0.11.2 — SkillOpt gate integration (microsoft/SkillOpt principle).
 
          A) HELD-OUT GATE (Phase 4a):
          New patterns must pass held-out validation before entering pattern store.

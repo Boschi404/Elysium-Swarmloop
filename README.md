@@ -8,13 +8,13 @@
 </p>
 
 <p align="center">
-  <img src="https://img.shields.io/badge/version-1.1.0-34d399?style=flat-square&labelColor=0f172a">
+  <img src="https://img.shields.io/badge/version-0.11.2-34d399?style=flat-square&labelColor=0f172a">
   <img src="https://img.shields.io/badge/license-MIT-22d3ee?style=flat-square&labelColor=0f172a">
   <img src="https://img.shields.io/badge/subagents-100-a78bfa?style=flat-square&labelColor=0f172a">
   <img src="https://img.shields.io/badge/depth-2-fbbf24?style=flat-square&labelColor=0f172a">
 </p>
 
-> ⚠️ **Stato di verifica (v1.1.0):** SkillOpt gate implementato (held-out validation, rejected_patterns, stable/candidate split). Gate test: 3/3 passati. Affidabilità del gate dipende dallo scoring engine sottostante — CodeScoringEngine: ceiling effect confermato (correctness=40.0 quando tests passano). DataScoringEngine: fix verificato 5/5. Vedi `risultati/AUDIT_SCORING_ENGINE.md` prima di fidarti dei pattern accettati dal gate.
+> ⚠️ **Stato di verifica (v0.11.2):** SkillOpt gate implementato (held-out validation, rejected_patterns, stable/candidate split). Gate test: 3/3 passati. Affidabilità del gate dipende dallo scoring engine sottostante — CodeScoringEngine: ceiling effect confermato (correctness=40.0 quando tests passano). DataScoringEngine: fix verificato 5/5. Vedi `risultati/AUDIT_SCORING_ENGINE.md` prima di fidarti dei pattern accettati dal gate.
 
 ## What is Elysium Swarmloop?
 
