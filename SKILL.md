@@ -1,10 +1,10 @@
 ---
 name: elysium-swarmloop
-description: "The Multi-Agent Orchestration Engine with self-learning mechanisms, automatic solution-space exploration, and self-updating bootstrap. v0.11.1: Auto-Update Bootstrap (git-based version check at every activation, install.sh git init)."
-version: 0.11.1
+description: "The Multi-Agent Orchestration Engine with self-learning mechanisms. SkillOpt gate: new patterns must pass held-out validation before entering pattern store. rejected_patterns table prevents re-proposing failed patterns. stable/candidate split ensures only verified patterns are used. Gate verification test: 3/3 passed (risultati/gate_verification/)."
+version: 1.1.0
 author: Boschi404 + ffazecaldy
 testing-agent: Hermes Agent
-tags: [agentic, auto, workflow, multi-agent, quality, research, iteration, scatter-gather, streaming-gather, self-learning, autonomous-loop, meta-scaling, orchestrator-depth2, self-improving, swarmloop, guardrails, security-shield, context-protection, contracts, clarification, plan-integration, sandbox-racing, quality-first, e2e-tested, solution-exploration, trade-off-analysis, multi-strategy]
+tags: [agentic, auto, workflow, multi-agent, quality, research, iteration, scatter-gather, streaming-gather, self-learning, autonomous-loop, meta-scaling, orchestrator-depth2, self-improving, swarmloop, guardrails, security-shield, context-protection, contracts, clarification, plan-integration, sandbox-racing, quality-first, e2e-tested]
 user_preferences:
   language: "italiano"
   auto_commit: true
@@ -45,40 +45,6 @@ hermes config set approvals.mode smart
 ```
 
 > **Why critical**: with defaults (3 subagents), Tier 4 tasks run at 3% of possible speed. The loop needs ALL 100 slots to reach full potential.
-
-## Auto-Update Bootstrap (v0.10.1+)
-
-This skill is **self-maintaining**. Every activation checks GitHub for a newer version.
-
-### How it works
-
-At session start, BEFORE the 4-Band Filter:
-
-```
-1. cd $SKILL_DIR && git fetch origin main 2>/dev/null
-2. Compare LOCAL vs REMOTE commit hash
-3. If REMOTE is ahead → notify user ONCE:
-   "🔄 Elysium Swarmloop v{NEW} available (you're on v{OLD}).
-    Run: cd $SKILL_DIR && git pull && /reload-skills"
-4. Continue with CURRENT version (never auto-update without consent)
-```
-
-**Why not auto-update?** Guardrail #7 (Human Checkpoint): skill mutations require user consent. Even beneficial updates are structural changes — the user must opt in.
-
-### Install (if not already a git repo)
-
-```bash
-cd ~/AppData/Local/hermes/skills/autonomous-agents/elysium-swarmloop
-git init && git remote add origin https://github.com/Boschi404/Elysium-Swarmloop.git
-git fetch origin && git reset --hard origin/main
-```
-
-After install, `git pull` is all you need to stay current. Then `/reload-skills`.
-
-### Fresh install
-```bash
-bash scripts/install.sh   # sets up git automatically
-```
 
 ## User Preferences
 
@@ -164,30 +130,28 @@ If the user explicitly includes these keywords in their goal, **the 4-Band Filte
 **Rule**: these keywords override band detection. Even a "Low" request like "fix typo" becomes Tier 2 if prefixed with "attiva elysium, fixa il typo".
 ---
 ## The Core Loop
-```python
-while goal_not_achieved:
-    state = assess(goal, done, gaps)
-    if state.is_done: break
-    decide()        # what to do next based on state
-    explore()       # (Tier 3+) multi-strategy exploration, pick best
-    decompose()     # break winning approach into tasks
-    scatter()       # dispatch all in parallel
-    stream()        # process each result as it arrives
-                    # immediate retry on failures
-    learn()         # save patterns, calibrate, improve
+```
+while goal\_not\_achieved:
+state = assess(goal, done, gaps)
+if state.is\_done: break
+decide() # what to do next based on state
+decompose() # break remaining work into tasks
+scatter() # dispatch all in parallel
+stream() # process each result as it arrives
+# immediate retry on failures
+learn() # save patterns, calibrate, improve
 ```
 ---
 ## 🚀 Quick Start
+```
 GOAL: "Crea sistema di prenotazione ristorante"
-
 1. STATE INIT → tier 3, 50 subagenti, soglia 7/10
-2. EXPLORE → 3 strategy scout: monolith vs microservices vs layered. Winner: layered (score 8.2/10)
-3. DECOMPOSE → 40 task atomici su 40 file diversi (layered approach)
-4. SCATTER → dispatch 40 subagenti in parallelo
-5. STREAM → processa streaming: 42 pass, 8 fail → retry immediati
-6. CONVERGE → 3 iterazioni, 100% pass
-7. LEARN → salva pattern "layered per api_crud" + "decomposizione per_file per CRUD"
-8. REPORT → first-pass 84%, qualità 8.6/10, 5 minuti
+2. DECOMPOSE → 40 task atomici su 40 file diversi
+3. SCATTER → dispatch 40 subagenti in parallelo
+4. STREAM → processa streaming: 42 pass, 8 fail → retry immediati
+5. CONVERGE → 3 iterazioni, 100% pass
+6. LEARN → salva pattern "decomposizione per\_file per CRUD"
+7. REPORT → first-pass 84%, qualità 8.6/10, 5 minuti
 ```
 ---
 ## Phase 0 — Autonomous Loop Engine (ALWAYS ACTIVE)
@@ -277,97 +241,6 @@ If project exists (not greenfield), scan before creating files:
 4. Inject conventions as quality criteria in every subagent
 ```
 New code matches existing code style. No "why is this file here" surprises.
-
----
-
-## Phase 0.6 — Solution-Space Exploration (Tier 3+ AUTO)
-
-**Activation:** automatic for ALL Tier 3+ tasks. Not gated behind keywords or retry failures. Goal: find the best architectural approach BEFORE committing 50 subagents to one path.
-
-### 0.6a — Strategy Generation
-
-Spawn 3 "strategy scouts" (leaf, fast-tracked) in parallel. Each proposes ONE distinct architectural approach:
-
-```
-SCOUT PROMPT:
-You are a strategy scout. Given: "{goal}"
-Propose ONE architectural approach. Do NOT implement.
-Return STRUCTURED JSON:
-{
-  "approach": "<name>",
-  "architecture": "<2-3 sentence description>",
-  "key_decisions": ["<d1>", "<d2>", "<d3>"],
-  "pros": ["<pro1>", "<pro2>", "<pro3>"],
-  "cons": ["<con1>", "<con2>", "<con3>"],
-  "complexity": <1-10>,
-  "risk": <1-10>,
-  "estimated_subagents": <N>,
-  "approach_type": "monolith|microservices|pipeline|plugin|layered|event-driven|other"
-}
-```
-
-**Scout biases (one per scout):** "prefer simplicity", "prefer scalability", "prefer speed of implementation". Each scout gets ONE bias — ensures genuinely different approaches, not 3 copies of the same idea.
-
-**Rules:** LEAF (cannot spawn further). Timeout: 120s each. Invalid JSON → use remaining scouts. ≤ 2 scouts available → skip exploration, proceed to Phase 1 directly (not enough signal).
-
-### 0.6b — Trade-off Matrix
-
-Compare all valid scout proposals on 5 weighted axes:
-
-| Axis | Weight | Meaning |
-|------|:------:|---------|
-| **Quality** | ×2.0 | Correctness, edge cases, robustness |
-| **Maintainability** | ×1.5 | Future changes, readability, modularity |
-| **Speed** | ×1.0 | Time to implement (lower subagent count = faster) |
-| **Scalability** | ×1.0 | Growth capacity, performance under load |
-| **Risk** | −1.5 | Dependencies, unknowns, integration complexity |
-
-**Weighted Score:** quality×2.0 + maintainability×1.5 + speed×1.0 + scalability×1.0 − risk×1.5
-
-### 0.6c — Winner Selection
-
-```
-1. Compute weighted score for each scout
-2. Winner = highest weighted score
-3. DOCUMENT: "Selected {approach} (score {X}) over {runner_up} (score {Y}). Reason: {top discriminating factor}."
-4. Save to plan file (Phase 0.5b): which approach chosen and why
-```
-
-**Anti-bias check:** if winner wins ONLY because of speed (speed dominates the score but quality is low) → re-evaluate with quality weight ×3.0. Fast-but-fragile loses to slower-but-solid.
-
-### 0.6d — Synthesis (if top 2 within 15%)
-
-If 2nd place score ≥ 85% of winner score → spawn 1 synthesis agent:
-
-```
-Goal: "Combine the best elements of approach A ({winner}) and approach B ({runner_up}).
-       Use A's architecture as base, incorporate B's best distinguishing idea."
-Result: hybrid approach → re-run 0.6a-0.6c cycle on the hybrid (max 1 retry).
-```
-
-### 0.6e — Hand-off to Decomposition
-
-Pass the WINNING APPROACH to Phase 1, not the raw goal:
-
-```
-Phase 1 receives:
-  goal: "{original_goal}"
-  approach: "{winning_approach_name} — {architecture summary}"
-  key_decisions: [{d1}, {d2}, {d3}]
-  approach_type: "{type}"
-```
-
-Phase 1 decomposes the STRATEGY into tasks — not the abstract goal.
-
-### 0.6f — Pattern Capture
-
-Save which approach types win for which goal types:
-
-| Goal Type | → Wins | Skip next time? |
-|-----------|--------|:---:|
-| api_creation → layered | 3+ times | ✅ Skip exploration, use layered directly |
-
-**Learning:** if approach_type X wins 3+ times for goal_type Y → skip Phase 0.6 next time, inject X directly into Phase 1. Saves 3 scout subagents per repeat.
 
 ---
 
@@ -696,15 +569,35 @@ Post-assembly: read ALL files for cross-module inconsistencies (signatures, nami
 
 ---
 ## Phase 4 — Self-Learning Loop
-### 4a — Pattern Capture (3-Level Persistence)
+### 4a — Pattern Capture (Gated — SkillOpt principle)
 
-After every execution, save patterns at 3 levels:
+After every execution, patterns follow a **gated capture** flow inspired by microsoft/SkillOpt:
 
-| Level | Where | Size | When |
-|-------|-------|------|------|
-| 1. Memory Entry | Hermes memory store | Max 200 chars | Last batch of session |
-| 2. Pattern Cache | `skill_dir/pattern_cache.json` | JSON, zero token cost | FPR > 70% |
-| 3. Dedicated Skill | `skill_manage(action="create")` | Full SKILL.md | 3+ occurrences, FPR > 75% |
+```
+PATTERN CAPTURE FLOW:
+1. Candidate generated: task completed → extract pattern (goal_type, decomposition, FPR, quality)
+2. REJECTED CHECK: query rejected_patterns table for same goal_type/context
+   └─ If match found → log "pattern already rejected for this context, see rejected_patterns"
+   └─ Skip to Level 1 memory entry only (no cache promotion)
+3. HELD-OUT VALIDATION (gate):
+   └─ Select 3-5 tasks from same category that were NEVER used during pattern generation
+   └─ Run candidate pattern on held-out tasks
+   └─ Compare: candidate_score vs baseline_score (no pattern)
+   └─ If candidate_score > baseline_score → ACCEPT → promote to stable cache
+   └─ If candidate_score ≤ baseline_score → REJECT → log in rejected_patterns
+4. STABLE/CANDIDATE SPLIT:
+   └─ stable: patterns that passed the gate (in pattern_cache.json)
+   └─ candidate: patterns under validation (in pattern_candidates.json)
+   └─ Only stable patterns are consulted during Recall (Phase 4c)
+```
+
+**Persistence levels (gated):**
+
+| Level | Where | Gate? | When |
+|-------|-------|-------|------|
+| 1. Memory Entry | Hermes memory store | ❌ Always (max 200 chars) | Last batch of session |
+| 2. Pattern Cache (stable) | `skill_dir/pattern_cache.json` | ✅ Must pass held-out gate | FPR > 70% AND gate passed |
+| 3. Dedicated Skill | `skill_manage(action="create")` | ✅ Must pass held-out gate | 3+ occurrences AND gate passed |
 
 **Level 1 format:** `ES[goal_type|T{tier}] FPR={rate} dec={pattern} q={quality} iter={N} L: {lessons}`
 **Level 2 consult:** at Phase 1 start, if goal_type matches cached pattern with FPR > 80% → use as template (saves ~2000 tokens).
@@ -726,12 +619,16 @@ return {"granularity": "balanced"}
 ```
 RECALL SEQUENCE (~1000 tokens):
 1. Memory injection: ES[...] entries in context → match goal_type? → MUST use as template
-2. Pattern cache: read_file(skill_dir/pattern_cache.json) → FPR > 70%? → MUST use as template
+2. Pattern cache (STABLE ONLY): read_file(skill_dir/pattern_cache.json) → FPR > 70%? → MUST use as template
    ⚠️ CRITICAL: pattern_cache.json MUST be saved to SKILL DIRECTORY, not ~/.hermes/ (sessions are isolated)
-3. Skill list: pattern-{goal_type} exists? → load with skill_view
-4. Dynamic Knowledge: read local-patterns.md + dynamic-patterns.md → inject as extra_criteria
-5. Calibration: 3+ history entries? → calibrate BEFORE decomposing
-6. FPR enforcement: FPR < 60% → finer granularity | FPR > 90% → coarser | never decompose from zero
+   ⚠️ ONLY stable patterns (passed held-out gate) are consulted — candidates are NOT used
+3. REJECTED CHECK: read_file(skill_dir/rejected_patterns.json) → match goal_type/context?
+   └─ If match → log "pattern already rejected for this context" → do NOT regenerate same pattern
+   └─ Use rejection reason as negative feedback in decomposition
+4. Skill list: pattern-{goal_type} exists? → load with skill_view
+5. Dynamic Knowledge: read local-patterns.md + dynamic-patterns.md → inject as extra_criteria
+6. Calibration: 3+ history entries? → calibrate BEFORE decomposing
+7. FPR enforcement: FPR < 60% → finer granularity | FPR > 90% → coarser | never decompose from zero
 ```
 
 **Enforcement:** pattern found but ignored → -5 penalty on final report. Token savings: 60-75%.
@@ -874,7 +771,7 @@ Last checkpoint: turn {turn}
 Run validation: `python scripts/e2e_test.py`
 
 ---
-## Pitfalls (condensed — 22 rules)
+## Pitfalls (condensed — 20 rules)
 
 | # | Pitfall | Fix |
 |:--|:--------|:----|
@@ -898,26 +795,37 @@ Run validation: `python scripts/e2e_test.py`
 | 18 | Clarification skipped (Tier 3+) | Always ask 5-6 questions first |
 | 19 | Plan skipped (5+ files) | Write plan before dispatch |
 | 20 | Sandbox Racing on shared files | Racing is for isolated bugfixes only |
-| 21 | Skipping Phase 0.6 exploration | Tier 3+ defaults to 1st approach. Always run 3 scouts or load cached winner. |
-| 22 | Ignoring auto-update notification | "v{NEW} available" means real improvements. Run git pull + /reload-skills. |
 ---
 ## Version History
 
 ```
-v0.11.1 — Auto-Update Bootstrap. Skill now self-maintaining: git-based version
-         check at every activation (compare LOCAL vs REMOTE, notify user if
-         newer available). Install.sh updated: auto-inits git repo in skill_dir
-         with origin→GitHub remote. git pull + /reload-skills = instant update.
-         Never auto-updates without consent (Guardrail #7). New pitfall #22.
-         Bootstrap section added after Required Config.
+v1.1.0 — SkillOpt gate integration (microsoft/SkillOpt principle).
 
-v0.11.0 — Solution-Space Exploration. Phase 0.6 adds automatic multi-strategy
-         exploration for ALL Tier 3+ tasks. 3 strategy scouts (biased: simplicity,
-         scalability, speed) → trade-off matrix (5 axes, weighted scoring) →
-         winner selection with anti-bias check → synthesis if top 2 within 15% →
-         approach-type pattern capture for skip-on-repeat. Core Loop + Quick
-         Start updated with explore() step. New pitfall #21. 3 new tags.
-         906→1025+ lines.
+         A) HELD-OUT GATE (Phase 4a):
+         New patterns must pass held-out validation before entering pattern store.
+         - Candidate generated from completed task
+         - REJECTED CHECK: query rejected_patterns for same goal_type/context
+         - HELD-OUT VALIDATION: test on 3-5 tasks NEVER used during generation
+         - If candidate_score > baseline_score → ACCEPT → promote to stable
+         - If candidate_score ≤ baseline_score → REJECT → log in rejected_patterns
+         - Gate verification test: 3/3 passed (risultati/gate_verification/)
+
+         B) REJECTED PATTERNS TABLE (pattern-store.sql):
+         Tracks patterns that failed held-out validation. Prevents re-proposing
+         same failed pattern. Columns: goal_type, context, pattern_data, reason,
+         held_out_score_delta, baseline_score, candidate_score, held_out_tasks.
+
+         C) STABLE/CANDIDATE SPLIT:
+         - stable: patterns that passed gate (pattern_cache.json)
+         - candidate: patterns under validation (pattern_candidates.json)
+         - Only stable patterns consulted during Recall (Phase 4c)
+         - Phase 4c now includes REJECTED CHECK before pattern generation
+
+         SCORING ENGINE STATUS:
+         CodeScoringEngine: ceiling effect confirmed (correctness=40.0 when tests
+         pass, 0.0 when fail — see risultati/correctness_falsification_test/).
+         DataScoringEngine: fix verified 5/5 pairs (see risultati/dataengine_verification/).
+         Gate reliability depends on scoring engine — see risultati/AUDIT_SCORING_ENGINE.md.
 
 v0.9.1 — Skill problems fix release + 4-Band Filter unification. 7 fixes, 1458→965 lines (-34%).
 

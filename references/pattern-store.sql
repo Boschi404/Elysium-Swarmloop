@@ -99,6 +99,49 @@ CREATE INDEX IF NOT EXISTS idx_calibrations_execution
 CREATE INDEX IF NOT EXISTS idx_calibrations_created
     ON calibrations(created_at);
 
+-- --------------------------------------------------------------------------
+-- 5. REJECTED PATTERNS — patterns that failed held-out validation (SkillOpt gate)
+-- --------------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS rejected_patterns (
+    id                  INTEGER PRIMARY KEY AUTOINCREMENT,
+    goal_type           TEXT    NOT NULL DEFAULT '',
+    context             TEXT    NOT NULL DEFAULT '',
+    pattern_data        TEXT    NOT NULL DEFAULT '{}',
+    reason              TEXT    NOT NULL DEFAULT '',
+    held_out_score_delta REAL   NOT NULL DEFAULT 0.0,
+    baseline_score      REAL    NOT NULL DEFAULT 0.0,
+    candidate_score     REAL    NOT NULL DEFAULT 0.0,
+    held_out_tasks      INTEGER NOT NULL DEFAULT 0,
+    rejected_at         TEXT    NOT NULL DEFAULT (datetime('now'))
+);
+
+CREATE INDEX IF NOT EXISTS idx_rejected_patterns_goal_type
+    ON rejected_patterns(goal_type);
+
+CREATE INDEX IF NOT EXISTS idx_rejected_patterns_rejected_at
+    ON rejected_patterns(rejected_at);
+
+-- --------------------------------------------------------------------------
+-- 6. PATTERN CANDIDATES — patterns under held-out validation (not yet promoted)
+-- --------------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS pattern_candidates (
+    id                  INTEGER PRIMARY KEY AUTOINCREMENT,
+    goal_type           TEXT    NOT NULL DEFAULT '',
+    context             TEXT    NOT NULL DEFAULT '',
+    pattern_data        TEXT    NOT NULL DEFAULT '{}',
+    source_execution_id INTEGER,
+    held_out_tasks      INTEGER NOT NULL DEFAULT 0,
+    status              TEXT    NOT NULL DEFAULT 'pending',  -- pending/accepted/rejected
+    created_at          TEXT    NOT NULL DEFAULT (datetime('now')),
+    FOREIGN KEY (source_execution_id) REFERENCES executions(id)
+);
+
+CREATE INDEX IF NOT EXISTS idx_candidates_goal_type
+    ON pattern_candidates(goal_type);
+
+CREATE INDEX IF NOT EXISTS idx_candidates_status
+    ON pattern_candidates(status);
+
 -- ==========================================================================
 -- INSERT TEMPLATES
 -- ==========================================================================

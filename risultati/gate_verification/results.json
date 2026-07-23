@@ -1,0 +1,91 @@
+{
+  "test_name": "gate_verification",
+  "version": "v1.1.0",
+  "timestamp": "2026-07-23T11:57:42.258336",
+  "results": [
+    {
+      "test": "bad_pattern_single_task",
+      "pattern": {
+        "goal_type": "api_development",
+        "decomposition": "per_file",
+        "fpr": 0.85,
+        "source_tasks": 1,
+        "generalizable": false
+      },
+      "held_out_tasks": 3,
+      "baseline_scores": [
+        72.0,
+        70.0,
+        68.0
+      ],
+      "candidate_scores": [
+        74.0,
+        62.0,
+        60.0
+      ],
+      "delta": -4.666666666666671,
+      "accepted": false,
+      "reason": "REJECTED: candidate (65.3) \u2264 baseline (70.0), delta=-4.7",
+      "expected": "REJECTED",
+      "correct": true
+    },
+    {
+      "test": "good_pattern_multi_task",
+      "pattern": {
+        "goal_type": "api_development",
+        "decomposition": "per_endpoint",
+        "fpr": 0.88,
+        "source_tasks": 5,
+        "generalizable": true
+      },
+      "held_out_tasks": 3,
+      "baseline_scores": [
+        72.0,
+        70.0,
+        68.0
+      ],
+      "candidate_scores": [
+        77.0,
+        75.0,
+        73.0
+      ],
+      "delta": 5.0,
+      "accepted": true,
+      "reason": "ACCEPTED: candidate (75.0) > baseline (70.0), delta=+5.0",
+      "expected": "ACCEPTED",
+      "correct": true
+    },
+    {
+      "test": "edge_case_delta_zero",
+      "pattern": {
+        "goal_type": "api_development",
+        "decomposition": "per_component",
+        "fpr": 0.7,
+        "source_tasks": 2,
+        "generalizable": false
+      },
+      "held_out_tasks": 3,
+      "baseline_scores": [
+        72.0,
+        70.0,
+        68.0
+      ],
+      "candidate_scores": [
+        74.0,
+        62.0,
+        60.0
+      ],
+      "delta": -4.666666666666671,
+      "accepted": false,
+      "reason": "REJECTED: candidate (65.3) \u2264 baseline (70.0), delta=-4.7",
+      "expected": "REJECTED",
+      "correct": true
+    }
+  ],
+  "summary": {
+    "total": 3,
+    "passed": 3,
+    "failed": 0,
+    "gate_working": true
+  }
+}
