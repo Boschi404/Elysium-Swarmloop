@@ -314,7 +314,61 @@ Eliminates 90% of integration bugs. If Batch 1 already started, Batch 2 adapts t
 criteria = {"completeness", "correctness", "edge_cases"}
 if task_type == "api": criteria += {"status_codes", "validation", "tests"}
 if task_type == "model": criteria += {"constraints", "repr", "migration"}
-if task_type == "ui": criteria += {"responsive", "states", "anti-slop"}
+if task_type == "ui": criteria += {"responsive", "states", "anti-slop", "design_system", "no_generic_ai"}
+```
+
+### 1f — Frontend/UI Design (CONDITIONAL — only if user requests UI)
+
+**⚠️ ACTIVATES ONLY when user explicitly requests:** interface, frontend, UI, dashboard, componente visuale, pagina, layout, design, form, landing, app con interfaccia.
+
+**If user doesn't mention UI → SKIP entirely.** This section is NOT for backend-only tasks.
+
+#### Design Principles (anti-AI-slop)
+
+```
+BANNED (marks output as AI-generated):
+├─ Glassmorphism everywhere (blur + transparency on every card)
+├─ Generic purple/blue gradients with no purpose
+├─ Soft shadows on everything (box-shadow: 0 4px 6px rgba(0,0,0,0.1))
+├─ Rounded-xl on every element (border-radius: 16px everywhere)
+├─ Stock illustrations (unDraw, Storyset)
+├─ "Lorem ipsum" or generic placeholder text
+├─ Generic hero sections with "Welcome to..." 
+└─ Identical card layouts repeated 20 times
+
+REQUIRED (makes output look professional):
+├─ Design system: define colors, typography, spacing ONCE → reuse
+├─ Purposeful animations: transitions on state change, not decoration
+├─ Data-driven headers: header color/style changes based on data (temp→warm colors)
+├─ Interactive elements: hover states, focus rings, loading skeletons
+├─ Responsive: mobile-first, test at 375px and 1440px
+├─ Real content: use actual domain data, not placeholders
+└─ Accessibility: aria-labels, keyboard nav, contrast ratios
+```
+
+#### Component Structure
+
+```
+FRONTEND DECOMPOSITION (when activated):
+├─ Design tokens: colors, typography, spacing (1 file)
+├─ Layout: shell, navigation, sidebar (1-2 files)
+├─ Pages: each page = 1 subagent (exclusive files)
+├─ Components: shared UI components (1 file per component type)
+├─ State: global state management (1 file)
+├─ API integration: data fetching layer (1 file)
+└─ Styles: CSS/Tailwind config (1 file)
+```
+
+#### Anti-Slop Validation (Phase 3b addition for UI tasks)
+
+When validating UI output, check:
+```
+1. No glassmorphism on >20% of components
+2. No generic gradients without data-driven purpose
+3. Every animation has a trigger (state change, hover, scroll)
+4. Responsive at 375px, 768px, 1024px, 1440px
+5. No stock placeholder text
+6. Color palette is consistent (defined in design tokens)
 ```
 ---
 ## Phase 2 — Hierarchical Scatter (Depth-2/3 Orchestration)
