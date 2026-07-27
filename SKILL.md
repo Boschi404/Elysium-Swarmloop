@@ -1,7 +1,7 @@
 ---
 name: elysium-swarmloop
 description: "The Multi-Agent Orchestration Engine with self-learning mechanisms. SkillOpt gate: new patterns must pass held-out validation before entering pattern store. rejected_patterns table prevents re-proposing failed patterns. stable/candidate split ensures only verified patterns are used. Gate verification test: 3/3 passed (risultati/gate_verification/)."
-version: 0.11.2
+version: 0.11.3
 author: Boschi404 + ffazecaldy
 testing-agent: Hermes Agent
 tags: [agentic, auto, workflow, multi-agent, quality, research, iteration, scatter-gather, streaming-gather, self-learning, autonomous-loop, meta-scaling, orchestrator-depth2, self-improving, swarmloop, guardrails, security-shield, context-protection, contracts, clarification, plan-integration, sandbox-racing, quality-first, e2e-tested]
@@ -323,53 +323,104 @@ if task_type == "ui": criteria += {"responsive", "states", "anti-slop", "design_
 
 **If user doesn't mention UI → SKIP entirely.** This section is NOT for backend-only tasks.
 
-#### Design Principles (anti-AI-slop)
+#### Stack Decision (before decomposition)
 
+| User says | Stack chosen | Decision |
+|-----------|-------------|----------|
+| "React", "Next.js", "componenti" | React + TypeScript | User specified |
+| "Vue", "Nuxt" | Vue 3 + TypeScript | User specified |
+| "vanilla", "senza framework" | HTML + CSS + vanilla JS | User specified |
+| Nothing specified | **ASK via clarify** | Don't assume |
+
+**Rule:** all parallel subagents MUST use the SAME stack. Inject stack choice into every subagent context via Interface Contract (Phase 1d):
 ```
-BANNED (marks output as AI-generated):
-├─ Glassmorphism everywhere (blur + transparency on every card)
-├─ Generic purple/blue gradients with no purpose
-├─ Soft shadows on everything (box-shadow: 0 4px 6px rgba(0,0,0,0.1))
-├─ Rounded-xl on every element (border-radius: 16px everywhere)
-├─ Stock illustrations (unDraw, Storyset)
-├─ "Lorem ipsum" or generic placeholder text
-├─ Generic hero sections with "Welcome to..." 
-└─ Identical card layouts repeated 20 times
-
-REQUIRED (makes output look professional):
-├─ Design system: define colors, typography, spacing ONCE → reuse
-├─ Purposeful animations: transitions on state change, not decoration
-├─ Data-driven headers: header color/style changes based on data (temp→warm colors)
-├─ Interactive elements: hover states, focus rings, loading skeletons
-├─ Responsive: mobile-first, test at 375px and 1440px
-├─ Real content: use actual domain data, not placeholders
-└─ Accessibility: aria-labels, keyboard nav, contrast ratios
+--- STACK CONTRACT ---
+Framework: React 18 + TypeScript
+Styling: Tailwind CSS v4
+State: Zustand (or React Context for simple cases)
+Build: Vite
+All components MUST use this stack. No mixing.
+--- END CONTRACT ---
 ```
 
-#### Component Structure
+#### Design Tokens Schema (mandatory before decomposition)
+
+Every UI task MUST start with a `design-tokens.ts` (or `.css`, `.json`) file. All subagents reference this file for consistency.
 
 ```
-FRONTEND DECOMPOSITION (when activated):
-├─ Design tokens: colors, typography, spacing (1 file)
-├─ Layout: shell, navigation, sidebar (1-2 files)
-├─ Pages: each page = 1 subagent (exclusive files)
-├─ Components: shared UI components (1 file per component type)
-├─ State: global state management (1 file)
-├─ API integration: data fetching layer (1 file)
-└─ Styles: CSS/Tailwind config (1 file)
+DESIGN TOKENS FILE (minimum structure):
+├─ colors: { primary, secondary, accent, bg, surface, text, muted, error, success, warning }
+├─ typography: { fontFamily, fontSize (xs/sm/base/lg/xl/2xl), fontWeight (normal/medium/bold), lineHeight }
+├─ spacing: { 1: '4px', 2: '8px', 3: '12px', 4: '16px', 6: '24px', 8: '32px', 12: '48px' }
+├─ radius: { sm: '4px', md: '8px', lg: '12px', full: '9999px' }
+├─ shadows: { sm, md, lg } (max 3 levels, not "everything has a shadow")
+└─ breakpoints: { sm: '640px', md: '768px', lg: '1024px', xl: '1280px' }
 ```
 
-#### Anti-Slop Validation (Phase 3b addition for UI tasks)
+**Validation:** every hex color, font-size, spacing value in component files MUST appear in design-tokens. Fail if >3 unmapped values found outside the tokens file.
 
-When validating UI output, check:
+#### Anti-Slop Validation (verifiable checks)
+
+| # | Check | Method | Pass | Fail |
+|---|-------|--------|------|------|
+| 1 | **Glassmorphism** | `grep -c "backdrop-filter:\s*blur" *.css *.tsx` | ≤20% of component files | >20% |
+| 2 | **Generic gradients** | `grep -c "linear-gradient.*purple\|linear-gradient.*#6366f1" *.css` | 0 matches | ≥1 match without data-driven purpose |
+| 3 | **Soft shadow spam** | `grep -c "box-shadow" *.css` | ≤1 per component avg | >2 per component avg |
+| 4 | **Rounded-xl spam** | `grep -c "border-radius:\s*1[6-9]px\|border-radius:\s*2[0-9]px" *.css` | ≤30% of components | >30% |
+| 5 | **Placeholder text** | `grep -ri "lorem ipsum\|placeholder\|sample text\|coming soon" *.tsx *.html` | 0 matches | ≥1 match |
+| 6 | **Stock illustrations** | `grep -ri "unsplash\|undraw\|storyset\|placeholder.*svg" *.tsx` | 0 matches | ≥1 match |
+| 7 | **Token consistency** | Extract all hex colors from components → check against design-tokens file | ≤3 unmapped | >3 unmapped |
+| 8 | **Animation trigger** | Every `@keyframes` or `transition` must have a corresponding state change (hover/focus/active/data-attr) | 100% have trigger | Any orphaned animation |
+
+#### Accessibility Checklist (WCAG AA minimum)
+
+| # | Requirement | Threshold | Verification |
+|---|------------|-----------|-------------|
+| 1 | **Contrast ratio — normal text** | ≥4.5:1 | Use contrast checker on all text/bg color pairs from design-tokens |
+| 2 | **Contrast ratio — large text/UI** | ≥3:1 | Same check for text ≥18px or ≥14px bold |
+| 3 | **Focus visible** | 100% interactive elements | Tab through all pages → every button/link/input must show visible focus ring |
+| 4 | **No focus traps** | 0 traps | Tab through modals/dialogs → must be able to tab out |
+| 5 | **Semantic landmarks** | `header`, `main`, `nav`, `footer` present | `grep -c "<header\|<main\|<nav\|<footer" index.html` ≥3 |
+| 6 | **Keyboard navigation** | All interactive elements reachable via Tab | Manual tab-through test on each page |
+| 7 | **aria-labels** | Every icon button, image, form input | `grep -c "aria-label\|aria-labelledby" *.tsx` ≥ count of interactive elements |
+| 8 | **Skip-to-content link** | Present on pages with navigation | `grep "skip.*content\|skip.*main" *.tsx` ≥1 |
+
+#### Application States Checklist
+
+Every page/view MUST handle these states. Fail if any missing:
+
+| State | Minimum requirement | Verification |
+|-------|-------------------|-------------|
+| **Loading** | Skeleton or spinner (not blank page) | `grep -c "skeleton\|spinner\|loading" *.tsx` ≥1 per page |
+| **Empty** | Message + CTA (not empty div) | `grep -c "empty\|no.*data\|no.*results" *.tsx` ≥1 per data page |
+| **Error** | Error message + retry button | `grep -c "error\|catch\|onError" *.tsx` ≥1 per API call |
+| **Disabled** | Visual + aria-disabled on disabled elements | `grep -c "disabled\|aria-disabled" *.tsx` ≥1 per form |
+| **Success** | Confirmation feedback (toast/inline) | `grep -c "success\|toast\|snackbar\|confirmed" *.tsx` ≥1 per mutation |
+| **404/Not Found** | Custom 404 page or inline message | File exists: `*404*` or `*not-found*` |
+
+#### Performance Checklist
+
+| # | Check | Threshold | Verification |
+|---|-------|-----------|-------------|
+| 1 | **No duplicate dependencies** | 0 duplicate packages across subagent outputs | `grep "import.*from" *.tsx \| sort \| uniq -d` should be empty (shared deps in package.json, not duplicated) |
+| 2 | **Lazy loading** | Heavy components (>500 LOC or chart libs) use dynamic import | `grep -c "React.lazy\|import(" *.tsx` ≥ count of heavy components |
+| 3 | **Image optimization** | No images >200KB, use WebP/AVIF where possible | `find . -name "*.png" -o -name "*.jpg" \| xargs ls -la` → no file >200KB |
+| 4 | **Bundle awareness** | No unused imports, tree-shakeable | `grep -c "import.*\*" *.tsx` should be 0 (no wildcard imports) |
+
+#### Component Decomposition (when UI activated)
+
 ```
-1. No glassmorphism on >20% of components
-2. No generic gradients without data-driven purpose
-3. Every animation has a trigger (state change, hover, scroll)
-4. Responsive at 375px, 768px, 1024px, 1440px
-5. No stock placeholder text
-6. Color palette is consistent (defined in design tokens)
+FRONTEND DECOMPOSITION:
+├─ design-tokens.ts/css — 1 subagent (FIRST, before all others)
+├─ Layout shell (header/sidebar/content) — 1 subagent
+├─ Pages — 1 subagent per page (exclusive files)
+├─ Shared components (Button, Input, Card, Modal) — 1 subagent
+├─ State management (store/context) — 1 subagent
+├─ API integration layer — 1 subagent
+└─ Styles/config (Tailwind, CSS modules) — 1 subagent
 ```
+
+**Order:** design-tokens FIRST (other subagents depend on it). Layout SECOND. Pages/components in parallel after layout is committed.
 ---
 ## Phase 2 — Hierarchical Scatter (Depth-2/3 Orchestration)
 ### 2a — Two-Level Hierarchy (+ B1-B6 Anti-Bottleneck)
@@ -853,6 +904,33 @@ Run validation: `python scripts/e2e_test.py`
 ## Version History
 
 ```
+v0.11.3 — Phase 1f (Frontend/UI) rewritten with verifiable controls.
+
+         1. VERIFIABLE ANTI-SLOP: 8 checks with grep/regex methods,
+            pass/fail thresholds per check (glassmorphism ≤20%, gradients 0,
+            shadows ≤1/component, rounded-xl ≤30%, placeholder 0, stock 0,
+            token consistency ≤3 unmapped, animation trigger 100%).
+
+         2. ACCESSIBILITY (WCAG AA): contrast ≥4.5:1 normal, ≥3:1 large,
+            focus visible 100%, no focus traps, semantic landmarks ≥3,
+            keyboard navigation, aria-labels ≥ interactive elements,
+            skip-to-content link.
+
+         3. DESIGN TOKENS SCHEMA: mandatory template before decomposition
+            (colors, typography, spacing, radius, shadows, breakpoints).
+            Validation: ≤3 unmapped values outside tokens file.
+
+         4. APPLICATION STATES: loading, empty, error, disabled, success,
+            404 — each with grep verification method.
+
+         5. STACK DECISION: explicit table (React/Vue/vanilla), ask via
+            clarify if not specified. Stack Contract injected via Phase 1d.
+
+         6. PERFORMANCE: no duplicate deps, lazy loading for heavy components,
+            images ≤200KB, no wildcard imports.
+
+         CONDITIONAL: activates ONLY when user explicitly requests UI/frontend.
+
 v0.11.2 — SkillOpt gate integration (microsoft/SkillOpt principle).
 
          A) HELD-OUT GATE (Phase 4a):
