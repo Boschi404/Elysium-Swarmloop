@@ -1,7 +1,7 @@
 ---
 name: elysium-swarmloop
-description: "The Multi-Agent Orchestration Engine with self-learning mechanisms, automatic solution-space exploration, and self-updating bootstrap. v0.13.1: Dry-run installer + PR readiness workflow. SkillOpt gate active."
-version: 0.13.1
+description: "The Multi-Agent Orchestration Engine with self-learning mechanisms, automatic solution-space exploration, and self-updating bootstrap. v0.13.2: Command allowlist + RTK output compression. SkillOpt gate active."
+version: 0.13.2
 author: Boschi404 + ffazecaldy
 testing-agent: Hermes Agent
 tags: [agentic, auto, workflow, multi-agent, quality, research, iteration, scatter-gather, streaming-gather, self-learning, autonomous-loop, meta-scaling, orchestrator-depth2, self-improving, swarmloop, guardrails, security-shield, context-protection, contracts, clarification, plan-integration, sandbox-racing, quality-first, e2e-tested, project-docs, approval-checkpoints]
@@ -571,6 +571,15 @@ SECURITY AUTO CHECK (run after file validation, before quality gate):
    ├─ EXCLUDES: files in /tests/, /test_*.py, /conftest.py (external test code uses hasattr(..., '__fields__') legitimately)
    ├─ OK: SQLAlchemy/SQLModel patterns, @app.route with HTTP methods, hasattr check in test files
    └─ If found → ❌ RETRY: "Use current version APIs — check for deprecation alternatives"
+
+5. DANGEROUS SHELL COMMANDS (CRITICAL — blocks task, pre-execution):
+   ├─ BLOCKED patterns (never allowed): rm -rf /, chmod 777 /, dd if= of=/dev/, :(){ :|:& };:, > /dev/sda
+   ├─ WARN patterns (require user confirmation): rm -rf, chmod -R 777, curl | bash, eval, sudo without explicit scope
+   ├─ ALLOWED patterns (safe commands): git, npm, pip, python, pytest, cargo, go, docker, kubectl, gh
+   ├─ Rule: before any terminal() call, check command against BLOCKED list → if match, refuse and explain
+   │        Check against WARN list → if match, ask user confirmation via clarify()
+   │        All other commands → allow (default-allow, not default-deny)
+   └─ If blocked → ❌ REFUSE: "Command blocked by security policy. Use safer alternative."
 ```
 ### 3a-quinques — Parallel Sandbox Racing
 
@@ -648,6 +657,29 @@ CONTEXT BUDGET RULES:
 ```
 
 **Cost:** 100 summaries saturate context → compression death spiral. Wave dispatch + summary compression prevent this.
+
+### 3d-bis — RTK Output Compression (optional, recommended for Tier 3-4)
+
+For verbose command output (test suites, builds, linters, logs, dependency listings), use [RTK](https://github.com/rtk-ai/rtk) to filter before it reaches the context window:
+
+```
+RTK USAGE RULES:
+1. Use RTK when command output is likely large/repetitive AND a filtered summary is sufficient:
+   ├─ Good candidates: test suites, builds, linters, logs, broad searches, dependency listings
+   └─ Bad candidates: short output, exact stdout/stderr needed, quoting/pipeline behavior checks
+
+2. Use raw commands when:
+   ├─ Output is expected to be short
+   ├─ Exact or complete output matters
+   └─ Inspecting a specific file or narrowly scoped result
+
+3. If RTK hides needed detail → rerun the command raw. Never use RTK merely to satisfy a convention.
+
+4. Install: cargo install --git https://github.com/rtk-ai/rtk
+   └─ NOT cargo install rtk (different crate on crates.io)
+```
+
+**Integration with Phase 3d:** RTK complements wave dispatch by reducing per-command token cost. Together they prevent context death spiral.
 
 ### 3e — Adaptive Threshold Tuning (next batch only)
 
@@ -976,7 +1008,7 @@ Last checkpoint: turn {turn}
 Run validation: `python scripts/e2e_test.py`
 
 ---
-## Pitfalls (condensed — 26 rules)
+## Pitfalls (condensed — 28 rules)
 
 | # | Pitfall | Fix |
 |:--|:--------|:----|
@@ -1006,10 +1038,24 @@ Run validation: `python scripts/e2e_test.py`
 | 24 | Ad-hoc plan format (no templates) | Use SPEC/ROADMAP/TASKS templates from Phase 0.5b. Structured docs prevent subagent conflicts and enable cross-session recall. |
 | 25 | Declaring done without PR readiness | Run Phase 3g-bis gates: local review, manual tests, hard gates, PR evidence. Never skip before Tier 3+ completion. |
 | 26 | Installer overwrites without backup | Use --dry-run first, back up existing files, ensure idempotent re-install. Phase 7 installer must be safe to run repeatedly. |
+| 27 | Dangerous shell command not blocked | Phase 3a check 5: scan all terminal() calls against BLOCKED/WARN/ALLOWED lists before execution. Default-deny destructive commands. |
+| 28 | Verbose output flooding context | Use RTK (Phase 3d-bis) for large/repetitive command output. Rerun raw if RTK hides needed detail. |
 ---
 ## Version History
 
 ```
+v0.13.2 — Command Allowlist + RTK Output Compression. Phase 3a check 5:
+         pre-execution shell command scanning with 3-tier system: BLOCKED
+         (never allowed — rm -rf /, chmod 777 /, fork bombs), WARN (user
+         confirmation required — rm -rf, curl|bash, eval, sudo), ALLOWED
+         (safe commands — git, npm, pip, python, pytest, cargo). Default-allow,
+         not default-deny. Phase 3d-bis: RTK output compression for verbose
+         commands (test suites, builds, linters, logs). Rules for when to use
+         RTK vs raw commands. Complements wave dispatch for context death spiral
+         prevention. New pitfalls #27 (dangerous command) and #28 (verbose output).
+         Tags: +command-allowlist +rtk-compression.
+         1289→1320+ lines.
+
 v0.13.1 — Dry-run Installer + PR Readiness Workflow. Phase 3g-bis added: full
          PR readiness checklist with 5 gates (local review, manual test
          checklist, hard gates, PR evidence, merge gate). Hard rules: never
