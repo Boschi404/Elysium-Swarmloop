@@ -1,7 +1,7 @@
 ---
 name: elysium-swarmloop
-description: "The Multi-Agent Orchestration Engine with self-learning mechanisms, automatic solution-space exploration, and self-updating bootstrap. v0.13.0: Project doc templates (SPEC/ROADMAP/TASKS) + explicit approval checkpoints. SkillOpt gate: new patterns must pass held-out validation before entering pattern store."
-version: 0.13.0
+description: "The Multi-Agent Orchestration Engine with self-learning mechanisms, automatic solution-space exploration, and self-updating bootstrap. v0.13.1: Dry-run installer + PR readiness workflow. SkillOpt gate active."
+version: 0.13.1
 author: Boschi404 + ffazecaldy
 testing-agent: Hermes Agent
 tags: [agentic, auto, workflow, multi-agent, quality, research, iteration, scatter-gather, streaming-gather, self-learning, autonomous-loop, meta-scaling, orchestrator-depth2, self-improving, swarmloop, guardrails, security-shield, context-protection, contracts, clarification, plan-integration, sandbox-racing, quality-first, e2e-tested, project-docs, approval-checkpoints]
@@ -673,6 +673,51 @@ Action: rewrite task, split, or escalate. Limit: 1 attempt per task.
 6. ASSEMBLY TASK: after ALL batch tasks verified → modify shared files, DRY check, commit + push
 ```
 \*\*Why in the loop and not at the end:\*\* granular commits after every task = rollback possible for single task if a later task breaks it. Single final commit = all-or-nothing.
+
+### 3g-bis — PR Readiness Workflow (Tier 3+ post-assembly)
+
+After all batch tasks pass and assembly task commits, run this checklist before declaring the goal complete:
+
+```
+PR READINESS GATES (all must pass before GOAL ACHIEVED):
+
+1. LOCAL REVIEW (mandatory):
+   ├─ Inspect complete diff: git diff origin/main...HEAD
+   ├─ Separate pre-existing changes from new work
+   ├─ Run focused checks per module, then full test suite
+   └─ Record exact commands + results
+
+2. MANUAL TEST CHECKLIST (mandatory for Tier 3+):
+   ├─ Define test scenarios from SPEC.md acceptance criteria
+   ├─ Document: environment, steps, expected vs actual
+   └─ Record evidence (screenshots/logs for visible changes)
+
+3. HARD GATES (do NOT report done while any remain):
+   ├─ Required CI is failed, pending, or on older commit
+   ├─ Actionable review feedback is unresolved
+   ├─ Required manual testing is incomplete or undocumented
+   ├─ Branch contains unrelated changes, secrets, debug code, or generated junk
+   └─ Planning documents (SPEC/ROADMAP/TASKS) no longer match implementation
+
+4. PULL REQUEST EVIDENCE:
+   ├─ Problem and implemented approach
+   ├─ Important decisions and deviations from the plan
+   ├─ Exact automated checks that passed
+   ├─ Manual tests and their environment
+   ├─ Screenshots or recordings for visible changes
+   └─ Known limitations, skipped validation, and follow-up work
+
+5. MERGE GATE (only when user explicitly requests):
+   └─ Final diff, CI, reviews, threads, manual tests ALL clean → merge
+   └─ Never merge without user authorization
+```
+
+**Hard rules:**
+- Never fabricate commit hashes, review state, commands, or test results
+- For uncommitted work, report `HEAD` together with worktree state
+- When no PR exists, report remote checks/reviews/threads as N/A
+- The builder's self-review is NOT a substitute for independent review
+
 ### 3h — Retry Intelligence
 
 | Type | Score | Strategy |
@@ -923,7 +968,7 @@ Last checkpoint: turn {turn}
 | Script | Purpose |
 |--------|---------|
 | `scripts/init-state.sh` | Bootloader: auto-detect tier, --clarify, --quality-first, --plan-file, --structural-scan |
-| `scripts/install.sh` | Auto-installer |
+| `scripts/install.sh` | Auto-installer with --dry-run (preview), backup preservation, idempotent re-install |
 | `scripts/e2e_test.py` | 176 checks across ALL phases, tiers 1-4 |
 | `scripts/session_manager.py` | Session state tracking, checkpoint, quality trend, interrupt recovery |
 | `scripts/pattern_cache.json` | Local pattern cache (created automatically, persists across sessions) |
@@ -931,7 +976,7 @@ Last checkpoint: turn {turn}
 Run validation: `python scripts/e2e_test.py`
 
 ---
-## Pitfalls (condensed — 24 rules)
+## Pitfalls (condensed — 26 rules)
 
 | # | Pitfall | Fix |
 |:--|:--------|:----|
@@ -959,10 +1004,21 @@ Run validation: `python scripts/e2e_test.py`
 | 22 | Ignoring auto-update notification | "v{NEW} available" means real improvements. Run git pull + /reload-skills. |
 | 23 | Skipping approval checkpoint | Never dispatch without plan_approved=True. Phase 0.5a + 0.5b checkpoints are HARD BOUNDARIES. |
 | 24 | Ad-hoc plan format (no templates) | Use SPEC/ROADMAP/TASKS templates from Phase 0.5b. Structured docs prevent subagent conflicts and enable cross-session recall. |
+| 25 | Declaring done without PR readiness | Run Phase 3g-bis gates: local review, manual tests, hard gates, PR evidence. Never skip before Tier 3+ completion. |
+| 26 | Installer overwrites without backup | Use --dry-run first, back up existing files, ensure idempotent re-install. Phase 7 installer must be safe to run repeatedly. |
 ---
 ## Version History
 
 ```
+v0.13.1 — Dry-run Installer + PR Readiness Workflow. Phase 3g-bis added: full
+         PR readiness checklist with 5 gates (local review, manual test
+         checklist, hard gates, PR evidence, merge gate). Hard rules: never
+         fabricate results, builder self-review ≠ independent review. Phase 7
+         installer documented with --dry-run, backup preservation, idempotent
+         re-install. New pitfalls #25 (skipping PR readiness) and #26 (installer
+         without backup). Tags: +pr-readiness +dry-run-installer.
+         1225→1280+ lines.
+
 v0.13.0 — Project Document System + Approval Checkpoints. Phase 0.5b upgraded
          from ad-hoc .hermes/plans/ markdown to standardized 4-document system:
          AGENTS.md (conventions), SPEC.md (requirements + acceptance criteria),
