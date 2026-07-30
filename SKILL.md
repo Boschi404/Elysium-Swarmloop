@@ -1,10 +1,10 @@
 ---
 name: elysium-swarmloop
-description: "The Multi-Agent Orchestration Engine with self-learning mechanisms. SkillOpt gate: new patterns must pass held-out validation before entering pattern store. rejected_patterns table prevents re-proposing failed patterns. stable/candidate split ensures only verified patterns are used. Gate verification test: 3/3 passed (risultati/gate_verification/)."
-version: 0.11.3
+description: "The Multi-Agent Orchestration Engine with self-learning mechanisms, automatic solution-space exploration, and self-updating bootstrap. v0.13.0: Project doc templates (SPEC/ROADMAP/TASKS) + explicit approval checkpoints. SkillOpt gate: new patterns must pass held-out validation before entering pattern store."
+version: 0.13.0
 author: Boschi404 + ffazecaldy
 testing-agent: Hermes Agent
-tags: [agentic, auto, workflow, multi-agent, quality, research, iteration, scatter-gather, streaming-gather, self-learning, autonomous-loop, meta-scaling, orchestrator-depth2, self-improving, swarmloop, guardrails, security-shield, context-protection, contracts, clarification, plan-integration, sandbox-racing, quality-first, e2e-tested]
+tags: [agentic, auto, workflow, multi-agent, quality, research, iteration, scatter-gather, streaming-gather, self-learning, autonomous-loop, meta-scaling, orchestrator-depth2, self-improving, swarmloop, guardrails, security-shield, context-protection, contracts, clarification, plan-integration, sandbox-racing, quality-first, e2e-tested, project-docs, approval-checkpoints]
 user_preferences:
   language: "italiano"
   auto_commit: true
@@ -166,7 +166,7 @@ STATE = {
     "first_pass_rate": None, "avg_quality_score": None,
     "self_lessons": [], "codebase_familiarity": "unknown",
     "quality_first": False, "global_recheck": False,
-    "clarify_mode": False, "plan_file": "", "start_time": now(),
+    "clarify_mode": False, "plan_approved": False, "plan_file": "", "start_time": now(),
 }
 ```
 
@@ -202,7 +202,8 @@ ASSESS: (1) completed? (2) failed + gaps? (3) in-flight? (4) goal reachable? (5)
 
 ```
 if in_flight → stream | elif failed & <max → retry | elif failed & >=max → escalate
-elif not started → decompose | elif done & OK → COMPLETE | elif done & LOW → quality loop
+elif not started AND NOT plan_approved → get_approval | elif not started → decompose
+elif done & OK → COMPLETE | elif done & LOW → quality loop
 ```
 
 ---
@@ -219,14 +220,68 @@ Before decomposing (Tier 3+), ask 5-6 questions in one message:
 
 User can answer inline or say "fai tu" to use defaults. 2 min of questions saves 20+ min of wrong-assumption retries.
 
----
-## Phase 0.5b — Plan Integration
+**⚠️ APPROVAL CHECKPOINT:** After user answers (or defaults accepted), summarize the chosen architecture decisions. Do NOT proceed to Phase 0.5b until:
+1. User confirms the summary OR says "procedi"/"go ahead"
+2. If user asks for changes, revise and re-confirm
+3. Never cross this checkpoint without explicit user approval. This is a hard boundary — same as Guardrail #7.
 
-Before dispatching (Tier 3+), write plan to `.hermes/plans/{goal_type}/{date}.md`:
+---
+## Phase 0.5b — Plan Integration (Project Document System)
+
+Before dispatching (Tier 3+), create/update these 4 standardized documents in `.hermes/plans/{project}/`:
+
+### Document Templates
+
+| Document | Purpose | Created when |
+|----------|---------|-------------|
+| `AGENTS.md` | Durable conventions, boundaries, tech stack | Once, updated when conventions change |
+| `SPEC.md` | Requirements, acceptance criteria, non-goals | Tier 3+ first run, updated on scope change |
+| `ROADMAP.md` | Ordered phases, dependencies, risks, exit criteria | Tier 3+ first run, updated per phase |
+| `TASKS.md` | Current actionable work with validated status | Every decomposition, updated per batch |
+
+### SPEC.md Template
+```markdown
+# {Project} Specification
+## Problem — {1-line summary}
+## Users — {who, context, platform}
+## Requirements — {numbered, testable}
+## Acceptance Criteria — {observable outcomes}
+## Non-Goals — {explicitly out of scope}
+## Architecture — {chosen approach from Phase 0.6}
+## Security & Privacy — {relevant concerns}
+## Compatibility — {OS, runtime, dependencies}
+```
+
+### ROADMAP.md Template
+```markdown
+# {Project} Roadmap
+## Phase 1: {name} — {goal} — exit: {criteria}
+## Phase 2: {name} — {goal} — depends on: Phase 1
+## Risks — {per phase: likelihood, mitigation}
+## Validation — {automated + manual per phase}
+```
+
+### TASKS.md Template
+```markdown
+# {Project} Tasks — Phase {N}
+| ID | Task | Files | Status | Score | Agent |
+|----|------|-------|--------|-------|-------|
+| T1 | {desc} | {path} | ⬜ pending | - | - |
+| T2 | {desc} | {path} | ✅ done | 8/10 | A3 |
+```
+
+### Minimal plan (Tier 2, ≤5 files)
+For Tier 2 or ≤5 files, a simplified plan in `.hermes/plans/{goal_type}/{date}.md` with:
 - File manifest: exact files to create/modify
 - Dependencies: build order
 - Interface contracts: function signatures between modules
 - Task assignments: which subagent works on what
+
+**⚠️ APPROVAL CHECKPOINT:** After writing the plan documents, present a summary to the user. Do NOT dispatch subagents until:
+1. User reviews and approves the plan, OR
+2. User previously said "fai tu" / "auto-approve" for this session
+3. If user requests changes, revise documents and re-present
+4. Plan approval is tracked in STATE: `plan_approved = True/False`
 
 Without a plan file, two subagents can modify the same `__init__.py` → conflicts.
 
@@ -876,7 +931,7 @@ Last checkpoint: turn {turn}
 Run validation: `python scripts/e2e_test.py`
 
 ---
-## Pitfalls (condensed — 20 rules)
+## Pitfalls (condensed — 24 rules)
 
 | # | Pitfall | Fix |
 |:--|:--------|:----|
@@ -900,10 +955,28 @@ Run validation: `python scripts/e2e_test.py`
 | 18 | Clarification skipped (Tier 3+) | Always ask 5-6 questions first |
 | 19 | Plan skipped (5+ files) | Write plan before dispatch |
 | 20 | Sandbox Racing on shared files | Racing is for isolated bugfixes only |
+| 21 | Skipping Phase 0.6 exploration | Tier 3+ defaults to 1st approach. Always run 3 scouts or load cached winner. |
+| 22 | Ignoring auto-update notification | "v{NEW} available" means real improvements. Run git pull + /reload-skills. |
+| 23 | Skipping approval checkpoint | Never dispatch without plan_approved=True. Phase 0.5a + 0.5b checkpoints are HARD BOUNDARIES. |
+| 24 | Ad-hoc plan format (no templates) | Use SPEC/ROADMAP/TASKS templates from Phase 0.5b. Structured docs prevent subagent conflicts and enable cross-session recall. |
 ---
 ## Version History
 
 ```
+v0.13.0 — Project Document System + Approval Checkpoints. Phase 0.5b upgraded
+         from ad-hoc .hermes/plans/ markdown to standardized 4-document system:
+         AGENTS.md (conventions), SPEC.md (requirements + acceptance criteria),
+         ROADMAP.md (phases + risks), TASKS.md (actionable work with status
+         tracking). Templates with explicit sections replace free-form plans.
+         Minimal plan path preserved for Tier 2 / ≤5 files. Phase 0.5a now has
+         hard approval checkpoint: summarize choices → wait for user confirmation
+         before proceeding. Phase 0.5b adds second checkpoint: plan review →
+         user approval before dispatch. Phase 0a STATE gains plan_approved field.
+         Phase 0c Decide now gates on plan_approved before decompose. Pitfalls
+         restored (#21 Phase 0.6 exploration, #22 auto-update) + new #23 skipping
+         checkpoint, #24 ad-hoc format. Tags: +project-docs +approval-checkpoints.
+         1152→1190+ lines.
+
 v0.11.3 — Phase 1f (Frontend/UI) rewritten with verifiable controls.
 
          1. VERIFIABLE ANTI-SLOP: 8 checks with grep/regex methods,
