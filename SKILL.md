@@ -1,15 +1,17 @@
 ---
 name: elysium-swarmloop
-description: "The Multi-Agent Orchestration Engine with self-learning mechanisms, automatic solution-space exploration, and self-updating bootstrap. v0.13.2: Command allowlist + RTK output compression. SkillOpt gate active."
-version: 0.13.2
+description: "The Multi-Agent Orchestration Engine with self-learning mechanisms, automatic solution-space exploration, and self-updating bootstrap. v0.14.0: Swarmloop Mode (gauntlet-style) + exact-case triggers MAX EFFORT / SWARMLOOP MODE / MESM."
+version: 0.14.0
 author: Boschi404 + ffazecaldy
 testing-agent: Hermes Agent
-tags: [agentic, auto, workflow, multi-agent, quality, research, iteration, scatter-gather, streaming-gather, self-learning, autonomous-loop, meta-scaling, orchestrator-depth2, self-improving, swarmloop, guardrails, security-shield, context-protection, contracts, clarification, plan-integration, sandbox-racing, quality-first, e2e-tested, project-docs, approval-checkpoints]
+tags: [agentic, auto, workflow, multi-agent, quality, research, iteration, scatter-gather, streaming-gather, self-learning, autonomous-loop, meta-scaling, orchestrator-depth2, self-improving, swarmloop, guardrails, security-shield, context-protection, contracts, clarification, plan-integration, sandbox-racing, quality-first, e2e-tested, project-docs, approval-checkpoints, swarmloop-mode, max-effort, mesm, cost-guardrail, case-sensitive-triggers]
 user_preferences:
   language: "italiano"
   auto_commit: true
   auto_push: true
   test_command: "pytest -q"
+  max_swarmloop_rounds: 3
+  max_swarmloop_subagents: 50
 ---
 # Elysium Swarmloop
 The Multi-Agent Orchestration Engine with self-learning mechanisms
@@ -56,6 +58,8 @@ The loop reads these settings from the YAML frontmatter at every execution:
 | `auto_commit` | `true` | Git commit after every passing task |
 | `auto_push` | `true` | Git push after every commit |
 | `test_command` | `pytest -q` | Command used for test execution |
+| `max_swarmloop_rounds` | `3` | Swarmloop Mode: hard cap on rounds (per-round user confirmation still required) |
+| `max_swarmloop_subagents` | `50` | Swarmloop Mode: max subagents per round |
 
 Override any preference by editing the `user_preferences:` section at the top of this file.
 **Language note**: when the user writes in a non-English language, all responses, subagent contexts, commit messages and final reports are in that language. If `language` is set, it overrides auto-detection.
@@ -83,12 +87,13 @@ Elysium Swarmloop is a self-improving autonomous orchestration engine that:
 ### ⚖️ Precedence Rule — Policy Conflict Resolution
 When two sections describe alternative policies for the same moment in the flow, \*\*the most restrictive wins\*\* (safety > autonomy). Order of precedence:
 1. ⚖️ \*\*Precedence Rule\*\* (this section) — always active
-2. 🛡️ \*\*Guardrails (Phase 4e)\*\* — protect the system from itself
-3. 🪜 \*\*Escalation Ladder (Phase 3j)\*\* — user decides on below-threshold gaps
-4. 🧠 \*\*Context Protection (Phase 3d)\*\* — prevents overflow/saturation
-5. 🎯 \*\*4-Band Filter\*\* — pre-check before loading skill
-6. ✨ \*\*Quality Gate (Phase 3)\*\* — evaluates and retries
-7. 📡 \*\*Scatter (Phase 2)\*\* — parallel dispatch
+2. 💸 \*\*Pre-Flight Cost Check (Phase 0.7a)\*\* — hard gate, no swarmloop dispatch without user confirmation
+3. 🛡️ \*\*Guardrails (Phase 4e)\*\* — protect the system from itself
+4. 🪜 \*\*Escalation Ladder (Phase 3j)\*\* — user decides on below-threshold gaps
+5. 🧠 \*\*Context Protection (Phase 3d)\*\* — prevents overflow/saturation
+6. 🎯 \*\*4-Band Filter\*\* — pre-check before loading skill
+7. ✨ \*\*Quality Gate (Phase 3)\*\* — evaluates and retries
+8. 📡 \*\*Scatter (Phase 2)\*\* — parallel dispatch
 \*\*Example:\*\* if Quality Gate says "accept task below threshold" but Escalation Ladder says "escalate to user" → Escalation wins. If Phase 2 says "dispatch 50 streaming" but Context Protection says "max 20-25 in-flight" → Context Protection wins.
 ---
 ### 🎯 4-Band Filter — First Checkpoint (BEFORE everything)
@@ -125,9 +130,12 @@ If the user explicitly includes these keywords in their goal, **the 4-Band Filte
 | Trigger Keyword | Effect |
 |----------------|--------|
 | `"attiva elysium"`, `"modalità elysium"`, `"elysium mode"`, `"swarmloop"` | Bypass filter → force loop activation |
-| `"massima qualità"`, `"maximum quality"`, `"quality-first"` | Bypass filter + activate Quality-First Mode (see Phase 0a) |
+| `"MAX EFFORT"` (exact, case-sensitive) | Bypass filter + activate Quality-First Mode (see Phase 0a) |
+| `"SWARMLOOP MODE"` (exact, case-sensitive) | Bypass filter + activate Swarmloop Mode (Phase 0.7) |
+| `"MESM"` (exact, case-sensitive) | Bypass filter + Quality-First AND Swarmloop Mode together (Max Effort Swarmloop Mode) |
 
 **Rule**: these keywords override band detection. Even a "Low" request like "fix typo" becomes Tier 2 if prefixed with "attiva elysium, fixa il typo".
+**Case-sensitivity (deliberate):** `"MAX EFFORT"`, `"SWARMLOOP MODE"`, `"MESM"` must appear EXACTLY in caps — lowercase variants ("max effort", "swarmloop mode", "mesm") do NOT trigger. Prevents accidental activation. Standard triggers (`attiva elysium`, `swarmloop`) stay case-insensitive.
 ---
 ## The Core Loop
 ```
@@ -165,7 +173,7 @@ STATE = {
     "iteration": 0, "max_iterations": auto_calc(tier),
     "first_pass_rate": None, "avg_quality_score": None,
     "self_lessons": [], "codebase_familiarity": "unknown",
-    "quality_first": False, "global_recheck": False,
+    "quality_first": False, "swarmloop_mode": False, "global_recheck": False,
     "clarify_mode": False, "plan_approved": False, "plan_file": "", "start_time": now(),
 }
 ```
@@ -189,7 +197,7 @@ STATE = {
 | Know by memory (5+ files) | -80% or 0 |
 | Wrote the module | 0 subagents, direct |
 
-**Quality-First Mode:** keywords "massima qualità"/"quality-first" → threshold 9/10, max_iterations 9, fine granularity, Global Re-Check enabled.
+**Quality-First Mode:** trigger `"MAX EFFORT"` (exact caps) → threshold 9/10, max_iterations 9, fine granularity, Global Re-Check enabled.
 
 **State Initialization:** `bash scripts/init-state.sh "goal"` (or `--quality-first`, `--clarify`, `--plan-file`, `--structural-scan`, `--json`).
 ### 0b — Assess
@@ -296,6 +304,55 @@ If project exists (not greenfield), scan before creating files:
 4. Inject conventions as quality criteria in every subagent
 ```
 New code matches existing code style. No "why is this file here" surprises.
+
+---
+
+## Phase 0.7 — Swarmloop Mode (explicit opt-in, gauntlet-style loop)
+
+A mode for goals where an EXTERNAL concrete bar exists (or can be found): builder/critic separation with fresh-context critics, open-ended rounds, per-round user check-ins. Inspired by Matt Shumer's Gauntlet Loop (somethingbig.ai/gauntlet-loop). Works for ANY domain — code, writing, research, design, marketing — not just games/visuals.
+
+**Activation — ONLY on explicit user request** (never from band detection, never automatic):
+| Exact keyword (case-sensitive, caps) | Effect |
+|---------------------------------------|--------|
+| `"SWARMLOOP MODE"` | Force loop + Swarmloop Mode |
+| `"MAX EFFORT"` | Force loop + Quality-First Mode only |
+| `"MESM"` | Force loop + Quality-First AND Swarmloop Mode together (most expensive combo) |
+
+STATE: `swarmloop_mode = True`.
+
+### 0.7a — Pre-Flight Cost Check (HARD GATE)
+Before ANY dispatch, estimate: `planned_subagents × estimated_rounds × avg_tokens_per_subagent × model_price` → present as `~N subagents × M rounds × ~X tok ≈ $Y`. WAIT for explicit confirmation. Options: (a) full run, (b) cap rounds, (c) cap budget $, (d) critics on cheaper model, (e) cancel. NO subagent is dispatched before confirmation. This gate exists because Swarmloop Mode burns tokens at maximum rate — with an expensive model, ONE unauthorized round can cost real money. `"MESM"` (both modes) MUST be flagged as the most expensive configuration.
+
+### 0.7b — The Bar (mandatory, concrete, inspectable)
+"Make it amazing" / "production-ready" is NOT a bar. Resolution order:
+1. User-provided reference (screenshots, sites, texts, test suite, latency target, reference implementation)
+2. Loop finds one: "find a concrete comparison/measurement that plays the same role for this task that real Call of Duty screenshots played for the Claude of Duty game. Explain why it is a useful bar, then judge every round against it."
+3. Ask the user via clarify
+No round starts without an inspectable bar.
+
+### 0.7c — Round Mechanics (split → build → judge → repeat)
+```
+for each piece:
+  builder builds (fresh subagent, goal + piece + bar, NOT the architecture)
+  critic = NEW subagent with FRESH context (never the builder's history or explanations)
+  critic inspects the REAL artifact (files, running product, tests, rendered output — never a builder summary)
+  blind A/B when possible: critic sees our output and the reference, not told which is which
+  if bar wins → critic names the BIGGEST gap → builder fixes it → next round
+  else → piece passes
+```
+- **Rounds are open-ended**: no fixed max_iterations. Stop when: bar beaten, budget cap hit, or user says stop.
+- **Per-round check-in (HARD)**: after each round report accumulated cost + win/loss vs bar + gap closed → ask "continue?" The run NEVER advances a round without explicit user go.
+- **Budget caps**: `max_swarmloop_rounds` (default 3) and `max_swarmloop_subagents` (default 50) from user_preferences; optional $ cap from pre-flight option (c). Hard stop on hit → report → ask.
+- **Live progress page**: maintain `workbench.md` (or a simple HTML page) updated every round with screenshots/drafts/test results/notes — the user watches progress without interrupting the run.
+- **Watch, don't interrupt**: user says "stop"/"basta" → halt at the next check-in. Hermes /stop always works.
+
+### 0.7d — Smoothing Pass (per wave)
+After each major wave, spawn ONE fresh agent to inspect the complete result: fix conflicts, align interfaces, make pieces feel like one artifact (NOT a redesign). Aligns with Phase 3g assembly task (runs before commit).
+
+### 0.7e — Cost Levers & Active Guardrails
+- Critics can run on a cheaper model (config `delegation`/`auxiliary`) for TEXT tasks — visual criticism needs the strong model (Phase 3a-quinques cost rule applies).
+- ALL standard guardrails stay active: 450s timeout + degradation (3d/3j-bis), escalation ladder (3j), security shield (3a), git policy (3g), context protection (3d), self-learning guardrails (4e), PR readiness (3g-bis).
+- Round check-ins supersede max_iterations ONLY inside Swarmloop Mode; the standard loop is unchanged.
 
 ---
 
@@ -1040,10 +1097,28 @@ Run validation: `python scripts/e2e_test.py`
 | 26 | Installer overwrites without backup | Use --dry-run first, back up existing files, ensure idempotent re-install. Phase 7 installer must be safe to run repeatedly. |
 | 27 | Dangerous shell command not blocked | Phase 3a check 5: scan all terminal() calls against BLOCKED/WARN/ALLOWED lists before execution. Default-deny destructive commands. |
 | 28 | Verbose output flooding context | Use RTK (Phase 3d-bis) for large/repetitive command output. Rerun raw if RTK hides needed detail. |
+| 29 | Mode keywords in lowercase (max effort / swarmloop mode / mesm) | Exact caps required by design: "MAX EFFORT", "SWARMLOOP MODE", "MESM". Prevents accidental activation. |
+| 30 | Swarmloop Mode without Pre-Flight confirmation | Phase 0.7a is a HARD GATE — never dispatch before the cost estimate is confirmed by the user. |
+| 31 | Critic grades a builder summary | Critic MUST inspect the real artifact (files, tests, renders) with fresh context — never the builder's history or summary. |
 ---
 ## Version History
 
 ```
+v0.14.0 — Swarmloop Mode (gauntlet-style loop) + redefined exact-case trigger
+         keywords. New Phase 0.7: external concrete bar (never "make it
+         amazing"), structural builder/critic separation with fresh-context
+         critics (blind A/B vs bar), open-ended rounds with HARD per-round
+         cost check-ins, pre-flight cost estimate gate (Phase 0.7a), budget
+         caps (max_swarmloop_rounds=3, max_swarmloop_subagents=50),
+         per-wave smoothing pass, live workbench.md progress page. Triggers
+         redefined: "MAX EFFORT" (exact caps) replaces massima qualità /
+         maximum quality / quality-first; "SWARMLOOP MODE" (exact caps)
+         activates the mode; "MESM" activates Quality-First + Swarmloop
+         together. Standard triggers (attiva elysium / swarmloop) unchanged.
+         New pitfalls #29 (lowercase keywords), #30 (pre-flight skip),
+         #31 (critic on summary). Tags: +swarmloop-mode +max-effort +mesm
+         +cost-guardrail +case-sensitive-triggers. 1320→1400+ lines.
+
 v0.13.2 — Command Allowlist + RTK Output Compression. Phase 3a check 5:
          pre-execution shell command scanning with 3-tier system: BLOCKED
          (never allowed — rm -rf /, chmod 777 /, fork bombs), WARN (user

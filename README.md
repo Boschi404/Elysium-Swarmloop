@@ -8,13 +8,13 @@
 </p>
 
 <p align="center">
-  <img src="https://img.shields.io/badge/version-0.11.3-34d399?style=flat-square&labelColor=0f172a">
+  <img src="https://img.shields.io/badge/version-0.14.0-34d399?style=flat-square&labelColor=0f172a">
   <img src="https://img.shields.io/badge/license-MIT-22d3ee?style=flat-square&labelColor=0f172a">
   <img src="https://img.shields.io/badge/subagents-100-a78bfa?style=flat-square&labelColor=0f172a">
   <img src="https://img.shields.io/badge/depth-2-fbbf24?style=flat-square&labelColor=0f172a">
 </p>
 
-> ⚠️ **Stato di verifica (v0.11.3):** SkillOpt gate implementato (held-out validation, rejected_patterns, stable/candidate split). Gate test: 3/3 passati. Phase 1f (Frontend/UI) riscritta con controlli verificabili (grep/regex), soglie WCAG AA, design tokens schema, application states checklist, performance checklist. Affidabilità del gate dipende dallo scoring engine — vedi `risultati/AUDIT_SCORING_ENGINE.md`.
+> ⚠️ **Stato di verifica (v0.14.0):** Swarmloop Mode (Phase 0.7) introdotto — loop gauntlet-style con bar esterna, critici indipendenti a contesto fresco e pre-flight cost gate. Trigger modalità ridefiniti con keyword case-sensitive: `MAX EFFORT`, `SWARMLOOP MODE`, `MESM`. E2E: 224/224 check passati. Self-learning resta "non verificato" — vedi `risultati/AUDIT_SCORING_ENGINE.md`.
 
 ## What is Elysium Swarmloop?
 
@@ -26,11 +26,12 @@ A Hermes Agent skill that transforms every prompt into an autonomous agentic wor
 - **Self-learning** — captures patterns in SQLite, calibrates granularity, improves iteration after iteration *(mechanism implemented; efficacy not yet independently verified — see audit)*
 - **Zero human intervention** — the loop keeps going until the goal is achieved
 - **Tier-based execution** — Tier 1 (fast-path) to Tier 4 (full epic), auto-detected
+- **Swarmloop Mode** — gauntlet-style builder/critic loop against an external reference bar, with hard cost gates (v0.14.0)
 
 ## Repository Structure
 
 ```
-├── SKILL.md                    # The autonomous loop engine (v0.7.0)
+├── SKILL.md                    # The autonomous loop engine (v0.14.0)
 ├── README.md                   # This file
 ├── SETUP.md                    # Complete installation guide
 ├── assets/
@@ -39,7 +40,7 @@ A Hermes Agent skill that transforms every prompt into an autonomous agentic wor
 ├── scripts/
 │   ├── init-state.sh           # Bootloader — initializes STATE
 │   ├── install.sh              # Auto-installer (bash install.sh)
-│   ├── e2e_test.py             # E2E test suite (35+ tests, 4 scenarios)
+│   ├── e2e_test.py             # E2E test suite (224 checks, 4 scenarios)
 │   └── session_manager.py      # Session state tracking, checkpoint, recovery
 └── references/
     ├── pattern-store.sql       # SQLite schema for pattern persistence
@@ -100,8 +101,46 @@ For critical bugfixes, 3–5 variant implementations run in parallel against the
 ### Quality-First Mode Override
 On-demand override to raise the quality threshold to 9/10. When activated, every subagent output must score 9+ before acceptance — no exceptions. Use this for production-critical or client-facing deliverables.
 
-### Hard Trigger Activation
-Bypass the 4-Band Filter with specific keywords. When the goal contains designated trigger terms (e.g., "full epic", "enterprise", "swarmloop"), the loop goes directly to full autonomous mode without filter pre-check.
+### Mode Activation Keywords (v0.14.0)
+
+Elysium Swarmloop activates its special modes **only when you explicitly ask**. The three mode keywords are **case-sensitive and must be written exactly in caps** — lowercase variants (`max effort`, `swarmloop mode`, `mesm`) are deliberately ignored, so a normal sentence can never fire a mode by accident.
+
+| Keyword (exact, caps) | Mode activated | What it does |
+|---|---|---|
+| `MAX EFFORT` | Quality-First Mode | Raises the acceptance threshold to 9/10 (no exceptions), up to 9 iterations, fine-grained decomposition, mandatory Global Re-Check pass. Use for production-critical or client-facing deliverables. |
+| `SWARMLOOP MODE` | Swarmloop Mode (gauntlet-style loop) | The lead agent splits the goal into the smallest independently judgeable pieces. Each piece gets a **builder** and a separate **critic with fresh context** that compares the real output against an **external reference bar** (blind A/B when possible). If the bar wins, the critic names the biggest gap and the builder fixes it — open-ended rounds until our output beats the bar or you stop the run. Works for ANY domain: code, websites, writing, research, design, marketing. |
+| `MESM` | Max Effort Swarmloop Mode | `MAX EFFORT` + `SWARMLOOP MODE` combined: 9/10 threshold inside a gauntlet loop. The most expensive configuration — the pre-flight cost check flags it as such. |
+
+**Standard triggers** (case-insensitive, unchanged): `attiva elysium`, `modalità elysium`, `elysium mode`, `swarmloop` — force full loop activation without any mode override.
+
+#### Examples
+
+```
+"MAX EFFORT sul refactor del modulo auth"                   → Quality-First only
+"SWARMLOOP MODE: portfolio fotografo, bar = questi 3 siti"  → gauntlet vs external bar
+"MESM: dashboard trading, bar = TradingView + <100ms"       → both modes
+"swarmloop: fixa il typo nel README"                        → standard loop, no mode
+```
+
+#### What makes Swarmloop Mode different
+
+| | Standard loop | Swarmloop Mode |
+|---|---|---|
+| Quality bar | Internal rubric (threshold 7/10) | **External reference** you provide (screenshots, sites, texts, test suite, reference implementation) |
+| Critic | Actor-Critic only after 3+ retries | **Independent critic with fresh context for every piece**, blind A/B vs the bar |
+| Rounds | Fixed by tier (`max_iterations`) | **Open-ended** — stops when the bar is beaten, a budget cap is hit, or you say stop |
+| Cost control | Standard limits | **Pre-Flight Cost Check** + per-round check-in (see below) |
+
+#### Swarmloop Mode — cost safety (Phase 0.7)
+
+Because the gauntlet loop burns tokens at maximum rate, it is wrapped in hard gates:
+
+1. **Pre-Flight Cost Check** — before ANY subagent is dispatched: `~N subagents × M rounds × ~X tok ≈ $Y`, then it waits for your explicit confirmation. Options: full run / cap rounds / cap budget $ / critics on a cheaper model / cancel.
+2. **Per-round check-in** — after every round: accumulated cost + win/loss vs bar + gap closed → "continue?" The run never advances a round without your go.
+3. **Budget caps** — `max_swarmloop_rounds` (default 3) and `max_swarmloop_subagents` (default 50), configurable in the skill's `user_preferences`; optional $ cap.
+4. **Live progress page** — a `workbench.md` updated every round (screenshots, drafts, test results) so you can watch the run evolve without interrupting it.
+
+The bar itself must be concrete and inspectable — "make it amazing" is refused. If you don't provide one, the loop finds a suitable reference or asks you.
 
 ### User Preferences Template
 A YAML-configurable template (`references/user_preferences.yaml`) that lets users fine-tune behavior: preferred threshold, max retries, sandbox racing on/off, hard triggers, and output verbosity.
@@ -113,7 +152,7 @@ A dedicated prerequisites section documents every config parameter the skill nee
 A post-assembly integrity scan that checks all outputs for cross-file consistency, interface compatibility, missing imports, and silent quality degradation after the assembly task. Runs once after all subagent output is integrated.
 
 ### E2E Test Script
-`scripts/e2e_test.py` — a comprehensive test suite with 35+ automated tests across 4 scenarios:
+`scripts/e2e_test.py` — a comprehensive test suite with 224 automated checks across 4 scenarios:
 - **Scenario 1:** Tier auto-detection accuracy
 - **Scenario 2:** Streaming quality gate behaviour
 - **Scenario 3:** Self-learning pattern capture
