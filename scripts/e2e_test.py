@@ -1,13 +1,17 @@
 #!/usr/bin/env python3
 """
-Elysium Swarmloop v0.7.0 — End-to-End Test Suite
-================================================
-Validates ALL phases of the autonomous orchestration engine across 4 tiers.
+Elysium Swarmloop v0.15.0 — End-to-End Test Suite
+==================================================
+Validates ALL phases of the autonomous orchestration engine across 4 tiers,
+plus the SKILL.md contract for v0.13+ phases (Scenario 5).
 
 Each scenario tests: 4-Band Filter, Tier Detection, State Init,
 Decomposition Granularity, Streaming Gather, Convergence, Report Generation,
 Quality Scoring Rubric, Security Shield, Context Protection,
 Git Commit+Push Policy, and Self-Learning Pattern Capture.
+Scenario 5 verifies the SKILL.md contract: case-insensitive triggers,
+smart approval checkpoints, token-based cost gate, conditional RTK/PR/docs,
+allowlist enforcement layer, and changelog integrity.
 
 Exit code: 0 if ALL pass, 1 if any fail.
 
@@ -1650,14 +1654,103 @@ def test_cross_cutting() -> None:
 
 
 # ═════════════════════════════════════════════════════════════════════════════
+# SCENARIO 5 — SKILL.md CONTRACT (v0.13.x–v0.15.0 phases)
+# ═════════════════════════════════════════════════════════════════════════════
+# The 4 scenarios above test the core engine (v0.7.0 specification). The
+# v0.13.0-v0.14.0 releases added Swarmloop Mode, approval checkpoints,
+# command allowlist, RTK, PR readiness and document system — none of which
+# were covered. This scenario verifies the SKILL.md contract directly so the
+# suite's green result is real evidence for the new phases too.
+
+def test_v015_skill_contract() -> None:
+    section("Scenario 5: SKILL.md Contract (v0.13+ phases)")
+    skill_path = os.path.join(os.path.dirname(os.path.abspath(__file__)),
+                              '..', 'SKILL.md')
+    check("[S5] SKILL.md found next to scripts/", os.path.isfile(skill_path))
+    if not os.path.isfile(skill_path):
+        return
+    with open(skill_path, 'r', encoding='utf-8') as f:
+        content = f.read()
+    low = content.lower()
+
+    # ── Version + frontmatter ──
+    subsection("Version & Frontmatter")
+    check("[S5] Frontmatter version is 0.15.0",
+          re.search(r'^version:\s*0\.15\.0\s*$', content, re.M) is not None)
+    check("[S5] user_preferences has max_swarmloop_rounds cap",
+          re.search(r'^  max_swarmloop_rounds:\s*3\s*$', content, re.M) is not None)
+    check("[S5] user_preferences has max_swarmloop_subagents cap",
+          re.search(r'^  max_swarmloop_subagents:\s*50\s*$', content, re.M) is not None)
+
+    # ── Trigger case-insensitivity (v0.15.0 fix) ──
+    subsection("Trigger Case-Insensitivity")
+    check("[S5] Triggers documented as case-INSENSITIVE",
+          'case-insensitive' in low)
+    check("[S5] Lowercase alias 'max effort' present in trigger table",
+          '"max effort"' in content)
+    check("[S5] Lowercase alias 'swarmloop mode' present in trigger table",
+          '"swarmloop mode"' in content)
+    check("[S5] Lowercase alias 'mesm' present in trigger table",
+          '"mesm"' in content)
+    check("[S5] Old 'EXACTLY in caps' rule removed",
+          'must appear exactly in caps' not in low)
+    check("[S5] Phase 0.7 Swarmloop Mode section present",
+          '## Phase 0.7 — Swarmloop Mode' in content)
+    check("[S5] Phase 0.7 activation is case-insensitive",
+          'Keyword (case-insensitive)' in content)
+
+    # ── Smart approval checkpoints (v0.15.0 fix) ──
+    subsection("Smart Approval Checkpoints")
+    check("[S5] Phase 0.5a checkpoint is smart/opt-in",
+          'APPROVAL CHECKPOINT (smart, opt-in)' in content)
+    check("[S5] Phase 0.5b checkpoint is smart/opt-in",
+          content.count('APPROVAL CHECKPOINT (smart, opt-in)') >= 2)
+    check("[S5] Auto-approve path documented ('fai tu')",
+          '"fai tu" / "procedi" / "auto-approve"' in content)
+
+    # ── Token-based cost gate (v0.15.0 fix) ──
+    subsection("Token-Based Cost Gate (no fabricated prices)")
+    check("[S5] Cost gate forbids invented $ prices",
+          'NEVER invent a $ price' in content)
+    check("[S5] Cost gate uses summary token caps",
+          'summary_token_cap' in content)
+    check("[S5] Pre-flight gate is hard (no dispatch before confirmation)",
+          'NO subagent is dispatched before confirmation' in content)
+
+    # ── Conditional sections (v0.15.0 fixes) ──
+    subsection("Conditional Sections (RTK / PR / Docs)")
+    check("[S5] Output filtering prefers native pipes",
+          'NATIVE PIPES' in content)
+    check("[S5] RTK is conditional on being installed",
+          'never block a task on an install' in low)
+    check("[S5] PR readiness gated on PR workflow",
+          'only when a PR workflow exists' in content)
+    check("[S5] Doc system tier-scoped (4 docs = Tier 4 only)",
+          'full 4-document system is for Tier 4' in content)
+    check("[S5] Allowlist documents Hermes approval as enforcement layer",
+          'ENFORCEMENT LAYER' in content)
+
+    # ── Pitfalls + changelog integrity ──
+    subsection("Pitfalls & Changelog Integrity")
+    check("[S5] Pitfall 29 replaced: 'Inventing $ cost estimates'",
+          'Inventing $ cost estimates' in content)
+    check("[S5] Old pitfall 29 (lowercase blame) removed",
+          'mode keywords in lowercase' not in low)
+    check("[S5] Changelog contains v0.15.0 entry",
+          'v0.15.0 — Usability & verification release' in content)
+    check("[S5] Changelog order: v0.15.0 above v0.14.0",
+          content.index('v0.15.0 — Usability') < content.index('v0.14.0 — Swarmloop Mode'))
+
+
+# ═════════════════════════════════════════════════════════════════════════════
 # MAIN
 # ═════════════════════════════════════════════════════════════════════════════
 
 def main() -> int:
     print(f"\n{BOLD}{CYAN}╔══════════════════════════════════════════════════════════╗{NC}")
-    print(f"{BOLD}{CYAN}║   Elysium Swarmloop v0.10.0 — End-to-End Test Suite     ║{NC}")
+    print(f"{BOLD}{CYAN}║   Elysium Swarmloop v0.15.0 — End-to-End Test Suite     ║{NC}")
     print(f"{BOLD}{CYAN}╚══════════════════════════════════════════════════════════╝{NC}")
-    print(f"\n{BOLD}Date: 2026-07-15 | Mode: Full Validation | Tiers: 1-4{NC}")
+    print(f"\n{BOLD}Date: 2026-08-20 | Mode: Full Validation | Tiers: 1-4 + SKILL.md contract{NC}")
 
     test_tier1_fast_path()
     test_tier2_standard()
@@ -1665,6 +1758,7 @@ def main() -> int:
     test_tier4_epic()
     test_phase06_exploration()
     test_cross_cutting()
+    test_v015_skill_contract()
 
     # ═══ Summary ═══
     total = passed + failed
@@ -1680,6 +1774,7 @@ def main() -> int:
         "Scenario 3: TIER 3 Complex",
         "Scenario 4: TIER 4 Epic",
         "Cross-Cutting: Schema & Edge Cases",
+        "Scenario 5: SKILL.md Contract (v0.13+ phases)",
     ]
     for d in descriptions:
         print(f"    • {d}")

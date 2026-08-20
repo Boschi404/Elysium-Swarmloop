@@ -8,13 +8,13 @@
 </p>
 
 <p align="center">
-  <img src="https://img.shields.io/badge/version-0.14.0-34d399?style=flat-square&labelColor=0f172a">
+  <img src="https://img.shields.io/badge/version-0.15.0-34d399?style=flat-square&labelColor=0f172a">
   <img src="https://img.shields.io/badge/license-MIT-22d3ee?style=flat-square&labelColor=0f172a">
   <img src="https://img.shields.io/badge/subagents-100-a78bfa?style=flat-square&labelColor=0f172a">
   <img src="https://img.shields.io/badge/depth-2-fbbf24?style=flat-square&labelColor=0f172a">
 </p>
 
-> ⚠️ **Stato di verifica (v0.14.0):** Swarmloop Mode (Phase 0.7) introdotto — loop gauntlet-style con bar esterna, critici indipendenti a contesto fresco e pre-flight cost gate. Trigger modalità ridefiniti con keyword case-sensitive: `MAX EFFORT`, `SWARMLOOP MODE`, `MESM`. E2E: 224/224 check passati. Self-learning resta "non verificato" — vedi `risultati/AUDIT_SCORING_ENGINE.md`.
+> ⚠️ **Stato di verifica (v0.15.0):** Swarmloop Mode (Phase 0.7) con trigger case-insensitive, checkpoint di approvazione smart opt-in, cost gate token-based (niente prezzi inventati), sezioni PR/RTK/docs condizionali. E2E: 250/250 check passati (Scenario 5 verifica il contratto SKILL.md delle fasi v0.13+). Self-learning resta "non verificato" — vedi `risultati/AUDIT_SCORING_ENGINE.md`.
 
 ## What is Elysium Swarmloop?
 
@@ -26,12 +26,12 @@ A Hermes Agent skill that transforms every prompt into an autonomous agentic wor
 - **Self-learning** — captures patterns in SQLite, calibrates granularity, improves iteration after iteration *(mechanism implemented; efficacy not yet independently verified — see audit)*
 - **Zero human intervention** — the loop keeps going until the goal is achieved
 - **Tier-based execution** — Tier 1 (fast-path) to Tier 4 (full epic), auto-detected
-- **Swarmloop Mode** — gauntlet-style builder/critic loop against an external reference bar, with hard cost gates (v0.14.0)
+- **Swarmloop Mode** — gauntlet-style builder/critic loop against an external reference bar, with token-based cost gates (v0.15.0)
 
 ## Repository Structure
 
 ```
-├── SKILL.md                    # The autonomous loop engine (v0.14.0)
+├── SKILL.md                    # The autonomous loop engine (v0.15.0)
 ├── README.md                   # This file
 ├── SETUP.md                    # Complete installation guide
 ├── assets/
@@ -101,15 +101,15 @@ For critical bugfixes, 3–5 variant implementations run in parallel against the
 ### Quality-First Mode Override
 On-demand override to raise the quality threshold to 9/10. When activated, every subagent output must score 9+ before acceptance — no exceptions. Use this for production-critical or client-facing deliverables.
 
-### Mode Activation Keywords (v0.14.0)
+### Mode Activation Keywords (v0.15.0)
 
-Elysium Swarmloop activates its special modes **only when you explicitly ask**. The three mode keywords are **case-sensitive and must be written exactly in caps** — lowercase variants (`max effort`, `swarmloop mode`, `mesm`) are deliberately ignored, so a normal sentence can never fire a mode by accident.
+Elysium Swarmloop activates its special modes **only when you explicitly ask**. The three mode keywords are **case-insensitive** — caps, lowercase, and mixed case all activate. The caps forms are the canonical names, not a requirement. If a sentence contains them incidentally, the mode fires anyway: a false positive costs one iteration, a missed trigger costs the whole mode.
 
-| Keyword (exact, caps) | Mode activated | What it does |
+| Keyword (any case) | Mode activated | What it does |
 |---|---|---|
-| `MAX EFFORT` | Quality-First Mode | Raises the acceptance threshold to 9/10 (no exceptions), up to 9 iterations, fine-grained decomposition, mandatory Global Re-Check pass. Use for production-critical or client-facing deliverables. |
-| `SWARMLOOP MODE` | Swarmloop Mode (gauntlet-style loop) | The lead agent splits the goal into the smallest independently judgeable pieces. Each piece gets a **builder** and a separate **critic with fresh context** that compares the real output against an **external reference bar** (blind A/B when possible). If the bar wins, the critic names the biggest gap and the builder fixes it — open-ended rounds until our output beats the bar or you stop the run. Works for ANY domain: code, websites, writing, research, design, marketing. |
-| `MESM` | Max Effort Swarmloop Mode | `MAX EFFORT` + `SWARMLOOP MODE` combined: 9/10 threshold inside a gauntlet loop. The most expensive configuration — the pre-flight cost check flags it as such. |
+| `MAX EFFORT` / `max effort` | Quality-First Mode | Raises the acceptance threshold to 9/10 (no exceptions), up to 9 iterations, fine-grained decomposition, mandatory Global Re-Check pass. Use for production-critical or client-facing deliverables. |
+| `SWARMLOOP MODE` / `swarmloop mode` | Swarmloop Mode (gauntlet-style loop) | The lead agent splits the goal into the smallest independently judgeable pieces. Each piece gets a **builder** and a separate **critic with fresh context** that compares the real output against an **external reference bar** (blind A/B when possible). If the bar wins, the critic names the biggest gap and the builder fixes it — open-ended rounds until our output beats the bar or you stop the run. Works for ANY domain: code, websites, writing, research, design, marketing. |
+| `MESM` / `mesm` | Max Effort Swarmloop Mode | `MAX EFFORT` + `SWARMLOOP MODE` combined: 9/10 threshold inside a gauntlet loop. The most expensive configuration — the pre-flight token estimate flags it as such. |
 
 **Standard triggers** (case-insensitive, unchanged): `attiva elysium`, `modalità elysium`, `elysium mode`, `swarmloop` — force full loop activation without any mode override.
 
@@ -117,8 +117,11 @@ Elysium Swarmloop activates its special modes **only when you explicitly ask**. 
 
 ```
 "MAX EFFORT sul refactor del modulo auth"                   → Quality-First only
+"max effort sul refactor del modulo auth"                   → same (case-insensitive)
 "SWARMLOOP MODE: portfolio fotografo, bar = questi 3 siti"  → gauntlet vs external bar
+"swarmloop mode: portfolio, bar = questi 3 siti"            → same (case-insensitive)
 "MESM: dashboard trading, bar = TradingView + <100ms"       → both modes
+"mesm: dashboard trading"                                   → same (case-insensitive)
 "swarmloop: fixa il typo nel README"                        → standard loop, no mode
 ```
 

@@ -1,10 +1,10 @@
 ---
 name: elysium-swarmloop
-description: "The Multi-Agent Orchestration Engine with self-learning mechanisms, automatic solution-space exploration, and self-updating bootstrap. v0.14.0: Swarmloop Mode (gauntlet-style) + exact-case triggers MAX EFFORT / SWARMLOOP MODE / MESM."
-version: 0.14.0
+description: "The Multi-Agent Orchestration Engine with self-learning mechanisms, automatic solution-space exploration, and self-updating bootstrap. v0.15.0: Swarmloop Mode (gauntlet-style) with case-insensitive triggers MAX EFFORT / SWARMLOOP MODE / MESM, smart opt-in approval checkpoints, token-based cost gate (no fabricated prices), conditional PR/docs/RTK sections, e2e coverage for all v0.13+ phases."
+version: 0.15.0
 author: Boschi404 + ffazecaldy
 testing-agent: Hermes Agent
-tags: [agentic, auto, workflow, multi-agent, quality, research, iteration, scatter-gather, streaming-gather, self-learning, autonomous-loop, meta-scaling, orchestrator-depth2, self-improving, swarmloop, guardrails, security-shield, context-protection, contracts, clarification, plan-integration, sandbox-racing, quality-first, e2e-tested, project-docs, approval-checkpoints, swarmloop-mode, max-effort, mesm, cost-guardrail, case-sensitive-triggers]
+tags: [agentic, auto, workflow, multi-agent, quality, research, iteration, scatter-gather, streaming-gather, self-learning, autonomous-loop, meta-scaling, orchestrator-depth2, self-improving, swarmloop, guardrails, security-shield, context-protection, contracts, clarification, plan-integration, sandbox-racing, quality-first, e2e-tested, project-docs, approval-checkpoints, swarmloop-mode, max-effort, mesm, cost-guardrail, case-insensitive-triggers]
 user_preferences:
   language: "italiano"
   auto_commit: true
@@ -130,12 +130,12 @@ If the user explicitly includes these keywords in their goal, **the 4-Band Filte
 | Trigger Keyword | Effect |
 |----------------|--------|
 | `"attiva elysium"`, `"modalità elysium"`, `"elysium mode"`, `"swarmloop"` | Bypass filter → force loop activation |
-| `"MAX EFFORT"` (exact, case-sensitive) | Bypass filter + activate Quality-First Mode (see Phase 0a) |
-| `"SWARMLOOP MODE"` (exact, case-sensitive) | Bypass filter + activate Swarmloop Mode (Phase 0.7) |
-| `"MESM"` (exact, case-sensitive) | Bypass filter + Quality-First AND Swarmloop Mode together (Max Effort Swarmloop Mode) |
+| `"MAX EFFORT"` / `"max effort"` | Bypass filter + activate Quality-First Mode (see Phase 0a) |
+| `"SWARMLOOP MODE"` / `"swarmloop mode"` | Bypass filter + activate Swarmloop Mode (Phase 0.7) |
+| `"MESM"` / `"mesm"` | Bypass filter + Quality-First AND Swarmloop Mode together (Max Effort Swarmloop Mode) |
 
 **Rule**: these keywords override band detection. Even a "Low" request like "fix typo" becomes Tier 2 if prefixed with "attiva elysium, fixa il typo".
-**Case-sensitivity (deliberate):** `"MAX EFFORT"`, `"SWARMLOOP MODE"`, `"MESM"` must appear EXACTLY in caps — lowercase variants ("max effort", "swarmloop mode", "mesm") do NOT trigger. Prevents accidental activation. Standard triggers (`attiva elysium`, `swarmloop`) stay case-insensitive.
+**Case handling:** ALL triggers are **case-INSENSITIVE** — caps, lowercase, and mixed case all activate. The caps forms are the canonical spellings, not a requirement. If a low-band task contains these words incidentally, the loop activates anyway: a false positive costs one iteration, a missed trigger costs the whole mode.
 ---
 ## The Core Loop
 ```
@@ -197,7 +197,7 @@ STATE = {
 | Know by memory (5+ files) | -80% or 0 |
 | Wrote the module | 0 subagents, direct |
 
-**Quality-First Mode:** trigger `"MAX EFFORT"` (exact caps) → threshold 9/10, max_iterations 9, fine granularity, Global Re-Check enabled.
+**Quality-First Mode:** trigger `"MAX EFFORT"` (case-insensitive — any case activates) → threshold 9/10, max_iterations 9, fine granularity, Global Re-Check enabled.
 
 **State Initialization:** `bash scripts/init-state.sh "goal"` (or `--quality-first`, `--clarify`, `--plan-file`, `--structural-scan`, `--json`).
 ### 0b — Assess
@@ -228,10 +228,11 @@ Before decomposing (Tier 3+), ask 5-6 questions in one message:
 
 User can answer inline or say "fai tu" to use defaults. 2 min of questions saves 20+ min of wrong-assumption retries.
 
-**⚠️ APPROVAL CHECKPOINT:** After user answers (or defaults accepted), summarize the chosen architecture decisions. Do NOT proceed to Phase 0.5b until:
-1. User confirms the summary OR says "procedi"/"go ahead"
-2. If user asks for changes, revise and re-confirm
-3. Never cross this checkpoint without explicit user approval. This is a hard boundary — same as Guardrail #7.
+**⚠️ APPROVAL CHECKPOINT (smart, opt-in):** After user answers (or defaults accepted), summarize the chosen architecture decisions. Then:
+1. User already said "fai tu" / "procedi" / "auto-approve" this session → proceed immediately (`plan_approved = True`), do NOT ask again — the user waived this checkpoint.
+2. Task is Tier 4, greenfield, new domain, or involves real money (API keys, cloud) → WAIT for explicit confirmation before Phase 0.5b.
+3. User asks for changes → revise and re-confirm.
+The checkpoint prevents wrong assumptions; it must never become friction the user already waived.
 
 ---
 ## Phase 0.5b — Plan Integration (Project Document System)
@@ -278,6 +279,8 @@ Before dispatching (Tier 3+), create/update these 4 standardized documents in `.
 | T2 | {desc} | {path} | ✅ done | 8/10 | A3 |
 ```
 
+**Tier scope:** the full 4-document system is for Tier 4 / greenfield / new domains only. Tier 3 with known conventions → `SPEC.md` + `TASKS.md` only. Tier 2 / ≤5 files → minimal plan below. Never write 4 documents for a task that fits in one.
+
 ### Minimal plan (Tier 2, ≤5 files)
 For Tier 2 or ≤5 files, a simplified plan in `.hermes/plans/{goal_type}/{date}.md` with:
 - File manifest: exact files to create/modify
@@ -285,11 +288,11 @@ For Tier 2 or ≤5 files, a simplified plan in `.hermes/plans/{goal_type}/{date}
 - Interface contracts: function signatures between modules
 - Task assignments: which subagent works on what
 
-**⚠️ APPROVAL CHECKPOINT:** After writing the plan documents, present a summary to the user. Do NOT dispatch subagents until:
-1. User reviews and approves the plan, OR
-2. User previously said "fai tu" / "auto-approve" for this session
-3. If user requests changes, revise documents and re-present
-4. Plan approval is tracked in STATE: `plan_approved = True/False`
+**⚠️ APPROVAL CHECKPOINT (smart, opt-in):** After writing the plan documents, present a summary to the user. Then:
+1. User said "fai tu" / "auto-approve" this session → proceed (`plan_approved = True`), no wait.
+2. Tier 4 / greenfield / new domain / money involved → WAIT for approval before dispatch.
+3. User requests changes → revise documents and re-present.
+4. Plan approval is tracked in STATE: `plan_approved = True/False`.
 
 Without a plan file, two subagents can modify the same `__init__.py` → conflicts.
 
@@ -312,16 +315,19 @@ New code matches existing code style. No "why is this file here" surprises.
 A mode for goals where an EXTERNAL concrete bar exists (or can be found): builder/critic separation with fresh-context critics, open-ended rounds, per-round user check-ins. Inspired by Matt Shumer's Gauntlet Loop (somethingbig.ai/gauntlet-loop). Works for ANY domain — code, writing, research, design, marketing — not just games/visuals.
 
 **Activation — ONLY on explicit user request** (never from band detection, never automatic):
-| Exact keyword (case-sensitive, caps) | Effect |
-|---------------------------------------|--------|
+| Keyword (case-insensitive) | Effect |
+|----------------------------|--------|
 | `"SWARMLOOP MODE"` | Force loop + Swarmloop Mode |
 | `"MAX EFFORT"` | Force loop + Quality-First Mode only |
-| `"MESM"` | Force loop + Quality-First AND Swarmloop Mode together (most expensive combo) |
+| `"MESM"` | Force loop + Quality-First AND Swarmloop Mode together (Max Effort Swarmloop Mode) |
+
+Any case variant (lowercase, caps, mixed) triggers. The caps forms are canonical names, not a filter.
 
 STATE: `swarmloop_mode = True`.
 
 ### 0.7a — Pre-Flight Cost Check (HARD GATE)
-Before ANY dispatch, estimate: `planned_subagents × estimated_rounds × avg_tokens_per_subagent × model_price` → present as `~N subagents × M rounds × ~X tok ≈ $Y`. WAIT for explicit confirmation. Options: (a) full run, (b) cap rounds, (c) cap budget $, (d) critics on cheaper model, (e) cancel. NO subagent is dispatched before confirmation. This gate exists because Swarmloop Mode burns tokens at maximum rate — with an expensive model, ONE unauthorized round can cost real money. `"MESM"` (both modes) MUST be flagged as the most expensive configuration.
+Before ANY dispatch, compute a REAL estimate from known numbers: `planned_subagents × estimated_rounds × summary_token_cap` (caps from Phase 3d: Tier 2 <500, Tier 3 <1000, Tier 4 <2000 tokens/summary) → present as `~N subagents × M rounds × ~X tok` plus the budget cap that applies. WAIT for explicit confirmation. Options: (a) full run, (b) cap rounds, (c) cap budget in tokens (or in $ ONLY if the user supplied a budget), (d) critics on cheaper model, (e) cancel. NO subagent is dispatched before confirmation.
+⚠️ **NEVER invent a $ price:** the token-per-dollar price of the current model is not known to the agent — state tokens only. Fabricating a $ estimate violates the anti-fabrication hard rules (Phase 3g-bis). This gate exists because Swarmloop Mode burns tokens at maximum rate. `"MESM"` (both modes) MUST be flagged as the most expensive configuration.
 
 ### 0.7b — The Bar (mandatory, concrete, inspectable)
 "Make it amazing" / "production-ready" is NOT a bar. Resolution order:
@@ -637,6 +643,10 @@ SECURITY AUTO CHECK (run after file validation, before quality gate):
    │        Check against WARN list → if match, ask user confirmation via clarify()
    │        All other commands → allow (default-allow, not default-deny)
    └─ If blocked → ❌ REFUSE: "Command blocked by security policy. Use safer alternative."
+
+   ENFORCEMENT LAYER: Hermes's own approval system is the final authority — this
+   list is a fast pre-check, not a substitute. If Hermes prompts for confirmation
+   on a WARN command, surface the prompt to the user (never auto-approve).
 ```
 ### 3a-quinques — Parallel Sandbox Racing
 
@@ -715,28 +725,34 @@ CONTEXT BUDGET RULES:
 
 **Cost:** 100 summaries saturate context → compression death spiral. Wave dispatch + summary compression prevent this.
 
-### 3d-bis — RTK Output Compression (optional, recommended for Tier 3-4)
+### 3d-bis — Output Filtering (optional, recommended for Tier 3-4)
 
-For verbose command output (test suites, builds, linters, logs, dependency listings), use [RTK](https://github.com/rtk-ai/rtk) to filter before it reaches the context window:
+For verbose command output (test suites, builds, linters, logs, dependency listings), filter BEFORE it reaches the context window. Three options, in order of preference:
 
 ```
-RTK USAGE RULES:
-1. Use RTK when command output is likely large/repetitive AND a filtered summary is sufficient:
-   ├─ Good candidates: test suites, builds, linters, logs, broad searches, dependency listings
-   └─ Bad candidates: short output, exact stdout/stderr needed, quoting/pipeline behavior checks
+OUTPUT FILTERING RULES:
+1. NATIVE PIPES (always available, no dependencies):
+   ├─ cmd 2>&1 | grep -E "FAILED|ERROR" | head -50   (errors only)
+   ├─ cmd | tail -N / cmd | head -N                  (truncate)
+   ├─ cmd | sort | uniq -c | sort -rn                (aggregate)
+   └─ Works everywhere — use this FIRST.
 
-2. Use raw commands when:
+2. RTK (optional, ONLY if already installed):
+   ├─ Check availability first: `which rtk` (or `rtk --version`)
+   ├─ If present → use [RTK](https://github.com/rtk-ai/rtk) for large/repetitive output
+   ├─ Install (optional): cargo install --git https://github.com/rtk-ai/rtk
+   │  └─ NOT cargo install rtk (different crate on crates.io)
+   └─ If cargo/rtk missing → skip silently to option 1. NEVER block a task on an install.
+
+3. RAW COMMAND when:
    ├─ Output is expected to be short
    ├─ Exact or complete output matters
    └─ Inspecting a specific file or narrowly scoped result
 
-3. If RTK hides needed detail → rerun the command raw. Never use RTK merely to satisfy a convention.
-
-4. Install: cargo install --git https://github.com/rtk-ai/rtk
-   └─ NOT cargo install rtk (different crate on crates.io)
+If a filter hides needed detail → rerun the command raw. Never filter merely to satisfy a convention.
 ```
 
-**Integration with Phase 3d:** RTK complements wave dispatch by reducing per-command token cost. Together they prevent context death spiral.
+**Integration with Phase 3d:** output filtering complements wave dispatch by reducing per-command token cost. Together they prevent context death spiral.
 
 ### 3e — Adaptive Threshold Tuning (next batch only)
 
@@ -763,9 +779,11 @@ Action: rewrite task, split, or escalate. Limit: 1 attempt per task.
 ```
 \*\*Why in the loop and not at the end:\*\* granular commits after every task = rollback possible for single task if a later task breaks it. Single final commit = all-or-nothing.
 
-### 3g-bis — PR Readiness Workflow (Tier 3+ post-assembly)
+### 3g-bis — PR Readiness Workflow (CONDITIONAL — only when a PR workflow exists)
 
-After all batch tasks pass and assembly task commits, run this checklist before declaring the goal complete:
+**Condition:** run this checklist ONLY if the repo uses PRs/CI/reviews (user works with pull requests or explicitly asks for a PR). Direct-to-main workflows — local repos, single-user projects, quick iterations — skip gates 1-5 and go straight to commit+push (Phase 3g). The anti-fabrication hard rules at the end apply ALWAYS, in every workflow.
+
+After all batch tasks pass and assembly task commits (PR workflow repos only), run this checklist before declaring the goal complete:
 
 ```
 PR READINESS GATES (all must pass before GOAL ACHIEVED):
@@ -1091,19 +1109,64 @@ Run validation: `python scripts/e2e_test.py`
 | 20 | Sandbox Racing on shared files | Racing is for isolated bugfixes only |
 | 21 | Skipping Phase 0.6 exploration | Tier 3+ defaults to 1st approach. Always run 3 scouts or load cached winner. |
 | 22 | Ignoring auto-update notification | "v{NEW} available" means real improvements. Run git pull + /reload-skills. |
-| 23 | Skipping approval checkpoint | Never dispatch without plan_approved=True. Phase 0.5a + 0.5b checkpoints are HARD BOUNDARIES. |
-| 24 | Ad-hoc plan format (no templates) | Use SPEC/ROADMAP/TASKS templates from Phase 0.5b. Structured docs prevent subagent conflicts and enable cross-session recall. |
-| 25 | Declaring done without PR readiness | Run Phase 3g-bis gates: local review, manual tests, hard gates, PR evidence. Never skip before Tier 3+ completion. |
+| 23 | Skipping approval checkpoint | Never dispatch Tier 4/greenfield/new-domain/money tasks without plan_approved=True. Lower tiers auto-approve when user said "fai tu". |
+| 24 | Ad-hoc plan format (no templates) | Use SPEC/ROADMAP/TASKS templates from Phase 0.5b for Tier 4/greenfield. Structured docs prevent subagent conflicts and enable cross-session recall. |
+| 25 | Declaring done without PR readiness | Run Phase 3g-bis gates ONLY in PR-based repos: local review, manual tests, hard gates, PR evidence. Direct-to-main repos skip to commit+push. |
 | 26 | Installer overwrites without backup | Use --dry-run first, back up existing files, ensure idempotent re-install. Phase 7 installer must be safe to run repeatedly. |
-| 27 | Dangerous shell command not blocked | Phase 3a check 5: scan all terminal() calls against BLOCKED/WARN/ALLOWED lists before execution. Default-deny destructive commands. |
-| 28 | Verbose output flooding context | Use RTK (Phase 3d-bis) for large/repetitive command output. Rerun raw if RTK hides needed detail. |
-| 29 | Mode keywords in lowercase (max effort / swarmloop mode / mesm) | Exact caps required by design: "MAX EFFORT", "SWARMLOOP MODE", "MESM". Prevents accidental activation. |
-| 30 | Swarmloop Mode without Pre-Flight confirmation | Phase 0.7a is a HARD GATE — never dispatch before the cost estimate is confirmed by the user. |
+| 27 | Dangerous shell command not blocked | Phase 3a check 5: scan all terminal() calls against BLOCKED/WARN/ALLOWED lists before execution. Hermes approval system remains the final enforcement layer. |
+| 28 | Verbose output flooding context | Filter with native pipes first (grep/tail/head, Phase 3d-bis). Use RTK only if installed (`which rtk`). Rerun raw if the filter hides needed detail. |
+| 29 | Inventing $ cost estimates | State tokens only (caps from Phase 3d). Never quote a model price the agent does not know. Use $ caps only from user-supplied budgets. |
+| 30 | Swarmloop Mode without Pre-Flight confirmation | Phase 0.7a is a HARD GATE — never dispatch before the token estimate is confirmed by the user. |
 | 31 | Critic grades a builder summary | Critic MUST inspect the real artifact (files, tests, renders) with fresh context — never the builder's history or summary. |
 ---
 ## Version History
 
 ```
+v0.15.0 — Usability & verification release (fixes analysis of v0.13.x-v0.14.0).
+
+         1. TRIGGERS CASE-INSENSITIVE (fix): MAX EFFORT / SWARMLOOP MODE / MESM
+            now activate in ANY case (caps, lowercase, mixed). Caps forms are
+            canonical spellings, not a filter. Removed the "exact caps" rule
+            that made users' lowercase input silently fail. False positives
+            are cheaper than missed triggers.
+
+         2. APPROVAL CHECKPOINTS SMART (fix): Phase 0.5a/0.5b no longer hard
+            gates for every Tier 3+ task. Auto-approve when user already said
+            "fai tu"/"procedi"/"auto-approve". Hard wait ONLY for Tier 4,
+            greenfield, new domain, or money involved. Checkpoints must not
+            become friction the user already waived.
+
+         3. COST GATE TOKEN-BASED (fix): Phase 0.7a no longer asks for $
+            estimates (agent does not know model prices → fabricated numbers,
+            violating anti-fabrication rules). Now estimates from known caps:
+            subagents × rounds × summary_token_cap (Phase 3d). $ caps only
+            from user-supplied budgets. New pitfall #29.
+
+         4. RTK CONDITIONAL (fix): Phase 3d-bis renamed Output Filtering.
+            Native pipes (grep/tail/head/sort|uniq) FIRST — always available.
+            RTK only if installed (`which rtk`), never block a task on an
+            install. Pitfall #28 updated.
+
+         5. PR READINESS CONDITIONAL (fix): Phase 3g-bis runs ONLY in
+            PR-based repos (PRs/CI/reviews). Direct-to-main workflows skip
+            to commit+push. Anti-fabrication hard rules stay global.
+
+         6. DOC SYSTEM TIER-SCOPED (fix): full 4-document system only for
+            Tier 4/greenfield/new domains. Tier 3 → SPEC+TASKS. Tier 2/≤5
+            files → minimal plan. Never 4 documents for a 1-file task.
+
+         7. ALLOWLIST CLARIFIED: Phase 3a check 5 documents Hermes approval
+            system as the final enforcement layer; skill list is a fast
+            pre-check, never auto-approve Hermes prompts.
+
+         8. E2E COVERAGE: scripts/e2e_test.py gains Scenario 5 verifying
+            SKILL.md contract for all v0.13+ phases (triggers, checkpoints,
+            cost gate, RTK fallback, PR condition, doc tier scope, allowlist
+            layer, changelog). Previous suite only covered the v0.7.0 core
+            engine — the 224 green checks were not evidence for v0.13+.
+
+         9. Changelog + tags updated. 1402→1420+ lines.
+
 v0.14.0 — Swarmloop Mode (gauntlet-style loop) + redefined exact-case trigger
          keywords. New Phase 0.7: external concrete bar (never "make it
          amazing"), structural builder/critic separation with fresh-context
