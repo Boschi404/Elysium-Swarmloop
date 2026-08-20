@@ -11,7 +11,7 @@ Quality Scoring Rubric, Security Shield, Context Protection,
 Git Commit+Push Policy, and Self-Learning Pattern Capture.
 Scenario 5 verifies the SKILL.md contract: case-insensitive triggers,
 smart approval checkpoints, token-based cost gate, conditional RTK/PR/docs,
-allowlist enforcement layer, and changelog integrity.
+allowlist enforcement layer, and the lean-skill contract (no version history).
 
 Exit code: 0 if ALL pass, 1 if any fail.
 
@@ -1730,16 +1730,18 @@ def test_v015_skill_contract() -> None:
     check("[S5] Allowlist documents Hermes approval as enforcement layer",
           'ENFORCEMENT LAYER' in content)
 
-    # ── Pitfalls + changelog integrity ──
-    subsection("Pitfalls & Changelog Integrity")
+    # ── Pitfalls + lean-skill contract ──
+    subsection("Pitfalls & Lean-Skill Contract")
     check("[S5] Pitfall 29 replaced: 'Inventing $ cost estimates'",
           'Inventing $ cost estimates' in content)
     check("[S5] Old pitfall 29 (lowercase blame) removed",
           'mode keywords in lowercase' not in low)
-    check("[S5] Changelog contains v0.15.0 entry",
-          'v0.15.0 — Usability & verification release' in content)
-    check("[S5] Changelog order: v0.15.0 above v0.14.0",
-          content.index('v0.15.0 — Usability') < content.index('v0.14.0 — Swarmloop Mode'))
+    check("[S5] No in-skill version history section (lean skill)",
+          '## Version History' not in content)
+    check("[S5] No per-version changelog bloat (v0.14.0 entry absent)",
+          'v0.14.0 — Swarmloop Mode' not in content)
+    check("[S5] Release notes documented as GitHub Release",
+          'GitHub Release' in content)
 
 
 # ═════════════════════════════════════════════════════════════════════════════

@@ -14,7 +14,7 @@
   <img src="https://img.shields.io/badge/depth-2-fbbf24?style=flat-square&labelColor=0f172a">
 </p>
 
-> ⚠️ **Stato di verifica (v0.15.0):** Swarmloop Mode (Phase 0.7) con trigger case-insensitive, checkpoint di approvazione smart opt-in, cost gate token-based (niente prezzi inventati), sezioni PR/RTK/docs condizionali. E2E: 250/250 check passati (Scenario 5 verifica il contratto SKILL.md delle fasi v0.13+). Self-learning resta "non verificato" — vedi `risultati/AUDIT_SCORING_ENGINE.md`.
+> ⚠️ **Stato di verifica (v0.15.0):** Swarmloop Mode (Phase 0.7) con trigger case-insensitive, checkpoint di approvazione smart opt-in, cost gate token-based (niente prezzi inventati), sezioni PR/RTK/docs condizionali, skill lean senza storico versioni. E2E: 251/251 check passati (Scenario 5 verifica il contratto SKILL.md delle fasi v0.13+). Self-learning resta "non verificato" — vedi `risultati/AUDIT_SCORING_ENGINE.md`.
 
 ## What is Elysium Swarmloop?
 
