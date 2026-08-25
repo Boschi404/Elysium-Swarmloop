@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # ============================================================================
-# init-state.sh — Elysium Swarmloop Bootloader  v0.7.0
+# init-state.sh — Elysium Swarmloop Bootloader  v0.16.0
 #
 # Initialises the STATE object for the autonomous multi-agent orchestration
 # engine.  Idempotent: re-run with the same GOAL to update state mid-loop.
@@ -18,10 +18,23 @@ set -euo pipefail
 
 # ---- constants ---------------------------------------------------------
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-STATE_FILE="${STATE_FILE:-${SCRIPT_DIR}/../.state.json}"
+STATE_FILE="${STATE_FILE:-$(pwd)/.elysium-state.json}"
 DEFAULT_SUBAGENTS=100
 START_TIME="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
-VERSION="v0.7.0"
+VERSION="v0.16.0"
+
+# ---- pattern cache bootstrap (v0.16.0) ---------------------------------
+# Ensures the Phase 4c Recall files exist next to SKILL.md so the loop never
+# reads missing files on first run. Idempotent: creates only what's absent.
+bootstrap_pattern_cache() {
+  local skill_dir="${SCRIPT_DIR}/.."
+  local f
+  for f in pattern_cache.json rejected_patterns.json pattern_candidates.json; do
+    if [[ ! -f "${skill_dir}/${f}" ]]; then
+      printf '[]\n' > "${skill_dir}/${f}" 2>/dev/null || true
+    fi
+  done
+}
 
 # ---- helpers -----------------------------------------------------------
 
@@ -606,6 +619,7 @@ main() {
   if $json_only; then
     echo "$state_json"
   else
+    bootstrap_pattern_cache
     write_state "$state_json"
     echo "$state_json" | print_state
     echo ""

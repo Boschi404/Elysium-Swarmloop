@@ -1675,8 +1675,8 @@ def test_v015_skill_contract() -> None:
 
     # ── Version + frontmatter ──
     subsection("Version & Frontmatter")
-    check("[S5] Frontmatter version is 0.15.0",
-          re.search(r'^version:\s*0\.15\.0\s*$', content, re.M) is not None)
+    check("[S5] Frontmatter version is 0.16.0",
+          re.search(r'^version:\s*0\.16\.0\s*$', content, re.M) is not None)
     check("[S5] user_preferences has max_swarmloop_rounds cap",
           re.search(r'^  max_swarmloop_rounds:\s*3\s*$', content, re.M) is not None)
     check("[S5] user_preferences has max_swarmloop_subagents cap",
@@ -1750,7 +1750,7 @@ def test_v015_skill_contract() -> None:
 
 def main() -> int:
     print(f"\n{BOLD}{CYAN}╔══════════════════════════════════════════════════════════╗{NC}")
-    print(f"{BOLD}{CYAN}║   Elysium Swarmloop v0.15.0 — End-to-End Test Suite     ║{NC}")
+    print(f"{BOLD}{CYAN}║   Elysium Swarmloop v0.16.0 — End-to-End Test Suite     ║{NC}")
     print(f"{BOLD}{CYAN}╚══════════════════════════════════════════════════════════╝{NC}")
     print(f"\n{BOLD}Date: 2026-08-20 | Mode: Full Validation | Tiers: 1-4 + SKILL.md contract{NC}")
 

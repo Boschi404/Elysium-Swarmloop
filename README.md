@@ -8,13 +8,13 @@
 </p>
 
 <p align="center">
-  <img src="https://img.shields.io/badge/version-0.15.0-34d399?style=flat-square&labelColor=0f172a">
+  <img src="https://img.shields.io/badge/version-0.16.0-34d399?style=flat-square&labelColor=0f172a">
   <img src="https://img.shields.io/badge/license-MIT-22d3ee?style=flat-square&labelColor=0f172a">
   <img src="https://img.shields.io/badge/subagents-100-a78bfa?style=flat-square&labelColor=0f172a">
   <img src="https://img.shields.io/badge/depth-2-fbbf24?style=flat-square&labelColor=0f172a">
 </p>
 
-> ⚠️ **Stato di verifica (v0.15.0):** Swarmloop Mode (Phase 0.7) con trigger case-insensitive, checkpoint di approvazione smart opt-in, cost gate token-based (niente prezzi inventati), sezioni PR/RTK/docs condizionali, skill lean senza storico versioni. E2E: 251/251 check passati (Scenario 5 verifica il contratto SKILL.md delle fasi v0.13+). Self-learning resta "non verificato" — vedi `risultati/AUDIT_SCORING_ENGINE.md`.
+> ⚠️ **Stato di verifica (v0.16.0):** Swarmloop Mode (Phase 0.7) con trigger case-insensitive, checkpoint di approvazione smart opt-in, cost gate token-based (niente prezzi inventati), sezioni PR/RTK/docs condizionali, skill lean senza storico versioni, Phase 0.6 exploration documentata e allineata all'e2e, installer safe (whitelist copy + --dry-run reale, niente reset --hard), pattern store materializzato in `scripts/pattern_store.py`, timeout single-source da config. E2E: 251/251 check passati + 21/21 test funzionali del pattern gate (sandbox isolata). Self-learning resta "non verificato" — vedi `risultati/AUDIT_SCORING_ENGINE.md`.
 
 ## What is Elysium Swarmloop?
 

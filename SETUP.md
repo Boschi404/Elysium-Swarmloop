@@ -1,4 +1,4 @@
-# Elysium Swarmloop — Installazione Perfetta (v0.7.0)
+# Elysium Swarmloop — Installazione Perfetta (v0.16.0) 
 
 Guida step-by-step per installare e configurare la skill in Hermes Agent.
 
@@ -21,14 +21,21 @@ cd ~/Desktop
 git clone https://github.com/Boschi404/Elysium-Swarmloop.git
 ```
 
-Poi copia i file nella directory skills di Hermes:
+**Modo consigliato (v0.16.0+): usa l'installer**, che copia solo i file runtime (whitelist: SKILL.md + scripts/ + references/, MAI workspaces//node_modules), fa backup dei file esistenti ed è idempotente:
 
 ```bash
-mkdir -p ~/AppData/Local/hermes/skills/autonomous-agents/elysium-swarmloop/scripts
-mkdir -p ~/AppData/Local/hermes/skills/autonomous-agents/elysium-swarmloop/references
-cp Elysium-Swarmloop/SKILL.md ~/AppData/Local/hermes/skills/autonomous-agents/elysium-swarmloop/
-cp Elysium-Swarmloop/scripts/* ~/AppData/Local/hermes/skills/autonomous-agents/elysium-swarmloop/scripts/
-cp Elysium-Swarmloop/references/* ~/AppData/Local/hermes/skills/autonomous-agents/elysium-swarmloop/references/
+bash Elysium-Swarmloop/scripts/install.sh --dry-run   # anteprima
+bash Elysium-Swarmloop/scripts/install.sh             # installa
+```
+
+Oppure copia manuale nella directory skills di Hermes: 
+
+```bash
+mkdir -p ~/AppData/Local/hermes/skills/autonomous-ai-agents/elysium-swarmloop/scripts
+mkdir -p ~/AppData/Local/hermes/skills/autonomous-ai-agents/elysium-swarmloop/references
+cp Elysium-Swarmloop/SKILL.md ~/AppData/Local/hermes/skills/autonomous-ai-agents/elysium-swarmloop/
+cp Elysium-Swarmloop/scripts/* ~/AppData/Local/hermes/skills/autonomous-ai-agents/elysium-swarmloop/scripts/
+cp Elysium-Swarmloop/references/* ~/AppData/Local/hermes/skills/autonomous-ai-agents/elysium-swarmloop/references/
 ```
 
 ---
@@ -86,7 +93,7 @@ Via terminale Python (esegui una volta):
 python -c "
 import sqlite3, os
 hermes_db = os.path.expanduser('~/.hermes/hermes.db')
-pattern_sql = os.path.expanduser('~/AppData/Local/hermes/skills/autonomous-agents/elysium-swarmloop/references/pattern-store.sql')
+pattern_sql = os.path.expanduser('~/AppData/Local/hermes/skills/autonomous-ai-agents/elysium-swarmloop/references/pattern-store.sql')
 conn = sqlite3.connect(hermes_db)
 with open(pattern_sql, 'r') as f:
     conn.executescript(f.read())
@@ -100,7 +107,7 @@ print('Pattern store inizializzato OK')
 ## Step 5 — Verifica il Bootloader
 
 ```bash
-cd ~/AppData/Local/hermes/skills/autonomous-agents/elysium-swarmloop
+cd ~/AppData/Local/hermes/skills/autonomous-ai-agents/elysium-swarmloop
 
 # Test Tier 1 (quick fix)
 bash scripts/init-state.sh --json "Fix typo in config"
@@ -120,7 +127,7 @@ bash scripts/init-state.sh --json "Build greenfield full-stack platform"
 ## Step 6 — Verifica i Nuovi Script (v0.7.0)
 
 ```bash
-cd ~/AppData/Local/hermes/skills/autonomous-agents/elysium-swarmloop
+cd ~/AppData/Local/hermes/skills/autonomous-ai-agents/elysium-swarmloop
 
 # Verifica che i nuovi script esistano
 ls -la scripts/e2e_test.py scripts/session_manager.py

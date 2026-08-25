@@ -1,15 +1,15 @@
 ---
 name: elysium-swarmloop
-description: "The Multi-Agent Orchestration Engine with self-learning mechanisms, automatic solution-space exploration, and self-updating bootstrap. v0.15.0: Swarmloop Mode (gauntlet-style) with case-insensitive triggers MAX EFFORT / SWARMLOOP MODE / MESM, smart opt-in approval checkpoints, token-based cost gate (no fabricated prices), conditional PR/docs/RTK sections, e2e coverage for all v0.13+ phases."
-version: 0.15.0
+description: "The Multi-Agent Orchestration Engine with self-learning mechanisms, automatic solution-space exploration, and self-updating bootstrap. v0.16.0: Swarmloop Mode (gauntlet-style) with case-insensitive triggers MAX EFFORT / SWARMLOOP MODE / MESM, smart opt-in approval checkpoints, token-based cost gate (no fabricated prices), conditional PR/docs/RTK sections, Phase 0.6 exploration documented, safe installer (whitelist copy, no reset --hard), pattern-store materialization, e2e coverage for all v0.13+ phases."
+version: 0.16.0
 author: Boschi404 + ffazecaldy
 testing-agent: Hermes Agent
 tags: [agentic, auto, workflow, multi-agent, quality, research, iteration, scatter-gather, streaming-gather, self-learning, autonomous-loop, meta-scaling, orchestrator-depth2, self-improving, swarmloop, guardrails, security-shield, context-protection, contracts, clarification, plan-integration, sandbox-racing, quality-first, e2e-tested, project-docs, approval-checkpoints, swarmloop-mode, max-effort, mesm, cost-guardrail, case-insensitive-triggers]
 user_preferences:
-  language: "italiano"
-  auto_commit: true
-  auto_push: true
-  test_command: "pytest -q"
+  language: ""
+  auto_commit: false
+  auto_push: false
+  test_command: "auto"
   max_swarmloop_rounds: 3
   max_swarmloop_subagents: 50
 ---
@@ -26,12 +26,13 @@ These **Hermes config settings are mandatory**. Without them, the loop is castra
 ```yaml
 delegation:
   max_concurrent_children: 100   # max parallelism (up to 100 subagents)
-  max_async_children: 100        # same for async ops
   max_spawn_depth: 2             # orchestrators can spawn leaf workers
   child_timeout_seconds: 600     # generous timeout for complex tasks
   max_iterations: 50             # deep reasoning per agent
   orchestrator_enabled: true     # enable hierarchical orchestration
 ```
+
+> **Nota:** `max_async_children` è deprecata dalle config Hermes ≥ v33 (fusa in `max_concurrent_children`) — non aggiungerla.
 
 **Run these commands** (or edit `~/AppData/Local/hermes/config.yaml` directly):
 
@@ -51,15 +52,15 @@ The loop reads these settings from the YAML frontmatter at every execution:
 
 | Setting | Default | Effect |
 |---------|---------|--------|
-| `language` | `italiano` | Response language for all communication |
-| `auto_commit` | `true` | Git commit after every passing task |
-| `auto_push` | `true` | Git push after every commit |
-| `test_command` | `pytest -q` | Command used for test execution |
+| `language` | *(vuoto)* | Empty = auto-detect from the user's language. Set a value to force it for all responses, contexts, commits and reports |
+| `auto_commit` | `false` | Git commit after every passing task — opt-in per progetto (mai pushare/committare senza consenso esplicito) |
+| `auto_push` | `false` | Git push after every commit — richiede anche `auto_commit: true` |
+| `test_command` | `auto` | `auto` = derived from Phase 0.5c structural-scan (Cargo.toml→`cargo test`, package.json→`npm test`, pyproject.toml→`pytest -q`, Makefile→`make test`); fallback esplicito sovrascrive |
 | `max_swarmloop_rounds` | `3` | Swarmloop Mode: hard cap on rounds (per-round user confirmation still required) |
 | `max_swarmloop_subagents` | `50` | Swarmloop Mode: max subagents per round |
 
 Override any preference by editing the `user_preferences:` section at the top of this file.
-**Language note**: when the user writes in a non-English language, all responses, subagent contexts, commit messages and final reports are in that language. If `language` is set, it overrides auto-detection.
+**Language note**: when the user writes in a non-English language, all responses, subagent contexts, commit messages and final reports are in that language. If `language` is set non-empty, it overrides auto-detection; empty/unset = auto-detect.
 
 ## Philosophy
 
@@ -68,30 +69,32 @@ Override any preference by editing the `user_preferences:` section at the top of
 > ⚠️ Il claim "I improve myself" si riferisce al meccanismo di Phase 4 (pattern capture, recall, calibration). La sua efficacia quantitativa non è ancora verificata con scorer affidabili — self-learning Δ non ri-benchmarkato con 6+ loop. Vedi nota di trasparenza all'inizio del documento.
 
 Elysium Swarmloop is a self-improving autonomous orchestration engine that:
-1. \*\*Decides what to do next\*\* — state machine, not recipe
-2. \*\*Executes at any scale\*\* — 1 to 100 subagents per batch
-3. \*\*Orchestrates hierarchically\*\* — depth-2: orchestrators spawn workers (depth-3 with B1-B6 rules for complex tasks)
-4. \*\*Evaluates and retries instantly\*\* — streaming gather, no batching delay
-5. \*\*Learns and evolves\*\* — captures patterns, calibrates, bumps version on improvement
-6. \*\*Validates at every layer\*\* — security, file integrity, execution, context budget
-7. \*\*Protects itself\*\* — 10 guardrails prevent self-learning contamination
-\*\*Guardrails for self-modification:\*\*
-- Every edit to this skill must \*\*improve the autonomous workflow\*\*, not add project-specific trivia
+1. **Decides what to do next** — state machine, not recipe
+2. **Executes at any scale** — 1 to 100 subagents per batch
+3. **Orchestrates hierarchically** — depth-2: orchestrators spawn workers (depth-3 with B1-B6 rules for complex tasks)
+4. **Evaluates and retries instantly** — streaming gather, no batching delay
+5. **Learns and evolves** — captures patterns, calibrates, bumps version on improvement
+6. **Validates at every layer** — security, file integrity, execution, context budget
+7. **Protects itself** — 10 guardrails prevent self-learning contamination
+**Guardrails for self-modification:**
+- Every edit to this skill must **improve the autonomous workflow**, not add project-specific trivia
 - No project error messages, framework-specific bugs, or dependency issues
 - Each modification increments the PATCH version (v0.7.x), meaningful improvements bump MINOR (v0.x), breakthrough rewrites bump MAJOR (v1.0.0)
 - When version bumps, release notes go in the GitHub Release — NO in-skill changelog (context is budget)
 ---
 ### ⚖️ Precedence Rule — Policy Conflict Resolution
-When two sections describe alternative policies for the same moment in the flow, \*\*the most restrictive wins\*\* (safety > autonomy). Order of precedence:
-1. ⚖️ \*\*Precedence Rule\*\* (this section) — always active
-2. 💸 \*\*Pre-Flight Cost Check (Phase 0.7a)\*\* — hard gate, no swarmloop dispatch without user confirmation
-3. 🛡️ \*\*Guardrails (Phase 4e)\*\* — protect the system from itself
-4. 🪜 \*\*Escalation Ladder (Phase 3j)\*\* — user decides on below-threshold gaps
-5. 🧠 \*\*Context Protection (Phase 3d)\*\* — prevents overflow/saturation
-6. 🎯 \*\*4-Band Filter\*\* — pre-check before loading skill
-7. ✨ \*\*Quality Gate (Phase 3)\*\* — evaluates and retries
-8. 📡 \*\*Scatter (Phase 2)\*\* — parallel dispatch
-\*\*Example:\*\* if Quality Gate says "accept task below threshold" but Escalation Ladder says "escalate to user" → Escalation wins. If Phase 2 says "dispatch 50 streaming" but Context Protection says "max 20-25 in-flight" → Context Protection wins.
+When two sections describe alternative policies for the same moment in the flow, **the most restrictive wins** (safety > autonomy). Order of precedence:
+1. ⚖️ **Precedence Rule** (this section) — always active
+2. 💸 **Pre-Flight Cost Check (Phase 0.7a)** — hard gate, no swarmloop dispatch without user confirmation
+3. 🛡️ **Guardrails (Phase 4e)** — protect the system from itself
+4. 🪜 **Escalation Ladder (Phase 3j)** — user decides on below-threshold gaps
+5. 🧠 **Context Protection (Phase 3d)** — prevents overflow/saturation (includes HARD TIMEOUT GUARD + graceful degradation 3j-bis)
+6. 🔁 **Global Re-Check (Phase 3k)** — post-assembly cross-module pass; Quality-First Mode makes it mandatory
+7. 📋 **PR Readiness Gates (Phase 3g-bis)** — only in PR-workflow repos; anti-fabrication rules apply ALWAYS
+8. 🎯 **4-Band Filter** — pre-check before loading skill
+9. ✨ **Quality Gate (Phase 3)** — evaluates and retries
+10. 📡 **Scatter (Phase 2)** — parallel dispatch
+**Example:** if Quality Gate says "accept task below threshold" but Escalation Ladder says "escalate to user" → Escalation wins. If Phase 2 says "dispatch 50 streaming" but Context Protection says "max 20-25 in-flight" → Context Protection wins.
 ---
 ### 🎯 4-Band Filter — First Checkpoint (BEFORE everything)
 
@@ -136,9 +139,9 @@ If the user explicitly includes these keywords in their goal, **the 4-Band Filte
 ---
 ## The Core Loop
 ```
-while goal\_not\_achieved:
+while goal_not_achieved:
 state = assess(goal, done, gaps)
-if state.is\_done: break
+if state.is_done: break
 decide() # what to do next based on state
 decompose() # break remaining work into tasks
 scatter() # dispatch all in parallel
@@ -155,7 +158,7 @@ GOAL: "Crea sistema di prenotazione ristorante"
 3. SCATTER → dispatch 40 subagenti in parallelo
 4. STREAM → processa streaming: 42 pass, 8 fail → retry immediati
 5. CONVERGE → 3 iterazioni, 100% pass
-6. LEARN → salva pattern "decomposizione per\_file per CRUD"
+6. LEARN → salva pattern "decomposizione per_file per CRUD"
 7. REPORT → first-pass 84%, qualità 8.6/10, 5 minuti
 ```
 ---
@@ -163,16 +166,19 @@ GOAL: "Crea sistema di prenotazione ristorante"
 ### 0a — State
 
 ```python
-STATE = {
-    "goal": "", "tier": auto_detect(), "quality_threshold": tier_to_threshold(tier),
-    "subagents_available": 100, "subagents_used": 0,
-    "tasks_completed": [], "tasks_failed": [], "tasks_in_flight": [],
+STATE = {  # canonical JSON keys emitted by scripts/init-state.sh are in <brackets>
+    "goal": "", "tier": auto_detect(), "quality_threshold": tier_to_threshold(tier) [<threshold>],
+    "subagents_available": 100 [<subagents>], "subagents_used": 0,
+    "tasks_completed": [] [<completed>], "tasks_failed": [] [<failed>], "tasks_in_flight": [] [<in_flight>],
     "iteration": 0, "max_iterations": auto_calc(tier),
     "first_pass_rate": None, "avg_quality_score": None,
     "self_lessons": [], "codebase_familiarity": "unknown",
     "quality_first": False, "swarmloop_mode": False, "global_recheck": False,
     "clarify_mode": False, "plan_approved": False, "plan_file": "", "start_time": now(),
 }
+# The bootloader emits the bracketed short keys; this STATE uses long names.
+# Mapping is fixed: subagents<->subagents_available, threshold<->quality_threshold,
+# completed<->tasks_completed, failed<->tasks_failed, in_flight<->tasks_in_flight.
 ```
 
 **Tier Auto-Detection:**
@@ -182,6 +188,8 @@ STATE = {
 | 2 | 5-15 | 7/10 | 1-3 files, CRUD, < 1h |
 | 3 | 15-50 | 7/10 | 3-10 files, auth+CRUD+services |
 | 4 | 50-100 | 8/10 | 10+ files, greenfield, cross-system |
+
+**Threshold semantics:** `score >= threshold` = PASS (un 6 esatto passa a Tier 1); `score < threshold` = retry. Coerente con Quality Matrix (banda retry = ≤5).
 
 **Word-boundary matching:** `\bapi\b` not "api" inside "/api/users/". Single endpoint + model = Tier 2.
 **Tier 1 Fast-Path:** ≤2 files + no deps = skip loop entirely, direct execution.
@@ -215,8 +223,8 @@ elif done & OK → COMPLETE | elif done & LOW → quality loop
 
 ## Phase 0.5a — Clarification Interview
 
-Before decomposing (Tier 3+), ask 5-6 questions in one message:
-1. DB: SQLite (default), PostgreSQL, or other?
+Before decomposing (Tier 3+), ask 5-6 questions in one message. The set is DOMAIN-ADAPTIVE: for backend goals use DB/auth/deploy below; for research/writing/design goals ask about audience, format, references/bar, length/scope instead — never ask backend questions for non-code goals:
+1. DB: SQLite (default), PostgreSQL, or other? *(code only)*
 2. Frontend: None (default), React, Vue?
 3. Auth: JWT (default), session, or none?
 4. Deploy: local (default), Docker, cloud?
@@ -304,6 +312,27 @@ If project exists (not greenfield), scan before creating files:
 4. Inject conventions as quality criteria in every subagent
 ```
 New code matches existing code style. No "why is this file here" surprises.
+```
+5. Detect test command (feeds `user_preferences.test_command: auto`):
+   Cargo.toml→`cargo test` · package.json→`npm test`/vitest/jest · pyproject.toml→`pytest -q` · Makefile→`make test`
+```
+
+---
+
+## Phase 0.6 — Solution-Space Exploration (Tier 3+)
+
+Before decomposing a Tier 3+ goal, explore the solution space instead of defaulting to the first approach (see Pitfall #21).
+
+### 0.6a — Strategy Scouts
+- 3 subagents in parallel, one per bias: `simplicity`, `scalability`, `speed`
+- Each returns a proposal: approach name, type, ≥2 pros, ≥2 cons, complexity 1-10, risk 1-10, ≥2 key decisions, estimated subagents
+- Contract reference implementation: `strategy_scout(goal, bias)` in `scripts/e2e_test.py`
+
+### 0.6b — Trade-off Matrix
+- Score all proposals across axes (complexity, risk, speed-to-value, maintainability); each gains `_score` + `_axes`
+- Winner = highest `_score`. Cache the winner per goal_type (FPR > 80% → future same-type goals skip scouts, see Recall 4c)
+
+**Rule:** Tier 3+ ALWAYS runs 3 scouts OR loads a cached winner — never a silent default to approach #1.
 
 ---
 
@@ -346,7 +375,7 @@ for each piece:
 - **Rounds are open-ended**: no fixed max_iterations. Stop when: bar beaten, budget cap hit, or user says stop.
 - **Per-round check-in (HARD)**: after each round report accumulated cost + win/loss vs bar + gap closed → ask "continue?" The run NEVER advances a round without explicit user go.
 - **Budget caps**: `max_swarmloop_rounds` (default 3) and `max_swarmloop_subagents` (default 50) from user_preferences; optional $ cap from pre-flight option (c). Hard stop on hit → report → ask.
-- **Live progress page**: maintain `workbench.md` (or a simple HTML page) updated every round with screenshots/drafts/test results/notes — the user watches progress without interrupting the run.
+- **Live progress page**: maintain `workbench.md` at `.hermes/plans/{project}/workbench.md` (or a simple HTML page) updated every round with screenshots/drafts/test results/notes — the user watches progress without interrupting the run.
 - **Watch, don't interrupt**: user says "stop"/"basta" → halt at the next check-in. Hermes /stop always works.
 
 ### 0.7d — Smoothing Pass (per wave)
@@ -354,7 +383,7 @@ After each major wave, spawn ONE fresh agent to inspect the complete result: fix
 
 ### 0.7e — Cost Levers & Active Guardrails
 - Critics can run on a cheaper model (config `delegation`/`auxiliary`) for TEXT tasks — visual criticism needs the strong model (Phase 3a-quinques cost rule applies).
-- ALL standard guardrails stay active: 450s timeout + degradation (3d/3j-bis), escalation ladder (3j), security shield (3a), git policy (3g), context protection (3d), self-learning guardrails (4e), PR readiness (3g-bis).
+- ALL standard guardrails stay active: config-driven timeout + degradation (3d/3j-bis), escalation ladder (3j), security shield (3a), git policy (3g), context protection (3d), self-learning guardrails (4e), PR readiness (3g-bis).
 - Round check-ins supersede max_iterations ONLY inside Swarmloop Mode; the standard loop is unchanged.
 
 ---
@@ -370,8 +399,8 @@ Decomposition adapts to available subagents:
 | 50-100 | Per-line + multi-variant (3 implementations, pick best) |
 ```python
 def decompose(goal, available, iteration):
-if iteration == 0: return fine\_grained(goal, count=available \* 0.8)
-else: return fine\_grained(gaps, count=len(gaps) \* 3)
+if iteration == 0: return fine_grained(goal, count=available * 0.8)
+else: return fine_grained(gaps, count=len(gaps) * 3)
 ```
 ### 1b — Scale Patterns
 
@@ -520,7 +549,7 @@ Every page/view MUST handle these states. Fail if any missing:
 | 1 | **No duplicate dependencies** | 0 duplicate packages across subagent outputs | `grep "import.*from" *.tsx \| sort \| uniq -d` should be empty (shared deps in package.json, not duplicated) |
 | 2 | **Lazy loading** | Heavy components (>500 LOC or chart libs) use dynamic import | `grep -c "React.lazy\|import(" *.tsx` ≥ count of heavy components |
 | 3 | **Image optimization** | No images >200KB, use WebP/AVIF where possible | `find . -name "*.png" -o -name "*.jpg" \| xargs ls -la` → no file >200KB |
-| 4 | **Bundle awareness** | No unused imports, tree-shakeable | `grep -c "import.*\*" *.tsx` should be 0 (no wildcard imports) |
+| 4 | **Bundle awareness** | No unused imports, tree-shakeable | `grep -c "import.**" *.tsx` should be 0 (no wildcard imports) |
 
 #### Component Decomposition (when UI activated)
 
@@ -539,31 +568,31 @@ FRONTEND DECOMPOSITION:
 ---
 ## Phase 2 — Hierarchical Scatter (Depth-2/3 Orchestration)
 ### 2a — Two-Level Hierarchy (+ B1-B6 Anti-Bottleneck)
-With `max\_spawn\_depth: 2`, subagents can be orchestrators that spawn their own workers:
+With `max_spawn_depth: 2`, subagents can be orchestrators that spawn their own workers:
 ```
 MAIN AGENT
-└── delegate\_task(role="orchestrator", goal="Analizza e fixa modulo X")
+└── delegate_task(role="orchestrator", goal="Analizza e fixa modulo X")
 ├── worker "trova bug" (leaf, default)
 ├── worker "trova vulnerabilità" (leaf)
 └── worker "propone fix" (leaf)
 ```
-\*\*Rules:\*\*
-- `role="orchestrator"` → subagent can use `delegate\_task(tasks=[...])` with leaf workers
+**Rules:**
+- `role="orchestrator"` → subagent can use `delegate_task(tasks=[...])` with leaf workers
 - `role="leaf"` (default) → cannot delegate further
 - Orchestrator collects worker results, synthesizes, returns summary
 - Workers are always leaves at depth 2
-\*\*For Tier 4 (Epic, 50+ files) — Depth-3 with B1-B6 Anti-Bottleneck Rules:\*\*
+**For Tier 4 (Epic, 50+ files) — Depth-3 with B1-B6 Anti-Bottleneck Rules:**
 For very complex tasks, use 3-level hierarchy: Parent → Orchestrator → Leaf → Micro-worker.
-\*\*6 Anti-Bottleneck Rules (B1-B6):\*\*
+**6 Anti-Bottleneck Rules (B1-B6):**
 ```
 B1 — Mini-batch: max 5 leaf workers per orchestrator batch (not all at once)
 B2 — Depth auto-limit by Tier: T1-2→1 level, T3→2 levels, T4→3 levels (only if >50 files)
 B3 — Context snapshot: <200 token snapshot injected into every subagent
 B4 — Retry degradation: retry 2 = inline by leaf, retry 3 = orchestrator does it inline
-B5 — Aligned timeouts: micro 60s → leaf 120s → orch 240s → parent 300s
-B6 — can\_dispatch() mandatory before every batch (see Phase 3d)
+B5 — Aligned timeouts: proportional slices of `child_timeout_seconds` from config — micro 25% → leaf 50% → orch 80% → parent 100%
+B6 — can_dispatch() mandatory before every batch (see Phase 3d)
 ```
-\*\*Leaf Dynamic Split:\*\* a leaf that evaluates its task as too complex (3+ files with dependencies, estimate >120s) can spawn MAX 2 micro-workers. Micro-worker is dead-end (cannot spawn further). Context snapshot injected. If both fail → leaf implements inline (B4).
+**Leaf Dynamic Split:** a leaf that evaluates its task as too complex (3+ files with dependencies, estimate >120s) can spawn MAX 2 micro-workers. Micro-worker is dead-end (cannot spawn further). Context snapshot injected. If both fail → leaf implements inline (B4).
 ### 2b — Streaming Dispatch (wave-based)
 
 Instead of one big `delegate_task(tasks=[...])`, dispatch in waves:
@@ -572,6 +601,7 @@ Instead of one big `delegate_task(tasks=[...])`, dispatch in waves:
 - On first result → evaluate IMMEDIATELY → retry below-threshold without waiting
 - Retries interleave naturally. Zero dead time between batches.
 - **⚠️ Safety:** every batch MUST pass `can_dispatch()` (Phase 3d) before starting.
+- 💸 **Cost gate:** standard batches above 20 subagents REQUIRE a reduced Pre-Flight estimate before dispatch (~N subagents × ~X tok, caps from 3d) — same hard gate as Swarmloop Mode, lighter form.
 
 ### 2c — Subagent Prompt Template (self-aware)
 
@@ -605,29 +635,32 @@ while goal_not_achieved AND iteration < max:
 ---
 ## Phase 3 — Streaming Quality Gate
 ### 3a — Security Shield AUTO (regex-based, ALL tiers)
-\*\*Applied to ALL code-producing tasks, even Tier 1.\*\* If a check fails → immediate retry with specific feedback.
+**Applied to ALL code-producing tasks, even Tier 1.** If a check fails → immediate retry with specific feedback.
 ```
 SECURITY AUTO CHECK (run after file validation, before quality gate):
 1. ZERO HARDCODED SECRETS (CRITICAL — blocks task):
-├─ Regex: \b(api\_key|password|secret|token|api\_secret)\s\*=\s\*['\"][^'\"]{8,}
+├─ Regex: \b(api_key|password|secret|token|api_secret)\s*=\s*['\"][^'\"]{8,}
 │ WITHOUT os.getenv / env / process.env in next 3 lines
-├─ Blocks: "API\_KEY = 'sk-abc123...'", "password = 'admin'"
-├─ OK: "API\_KEY = os.getenv('API\_KEY')", "password = get\_secret()"
+├─ Blocks: "API_KEY = 'sk-abc123...'", "password = 'admin'"
+├─ OK: "API_KEY = os.getenv('API_KEY')", "password = get_secret()"
 └─ If found → ❌ RETRY: "Move credential to environment variable"
 2. SQL INJECTION RISK (HIGH — blocks task):
-├─ Regex: (f['"]SELECT|f['"]INSERT|\.format\(.\*SELECT|\+ .\*SELECT|execute\(.\*\+)
-├─ Blocks: f"SELECT \* FROM users WHERE id={user\_id}"
-│ "SELECT \* FROM " + table\_name
-├─ OK: cursor.execute("SELECT \* FROM users WHERE id=?", (user\_id,))
-│ session.query(User).filter(User.id == user\_id) [ORM]
+├─ Regex: (f['"]SELECT|f['"]INSERT|\.format\(.*SELECT|\+ .*SELECT|execute\(.*\+)
+├─ Blocks: f"SELECT * FROM users WHERE id={user_id}"
+│ "SELECT * FROM " + table_name
+├─ OK: cursor.execute("SELECT * FROM users WHERE id=?", (user_id,))
+│ session.query(User).filter(User.id == user_id) [ORM]
 └─ If found → ❌ RETRY: "Use parameterized queries or ORM, never f-string SQL"
 3. PLACEHOLDER SECRETS (warning — doesn't block):
    ├─ Regex: \b(API_KEY|TOKEN|SECRET)\s*=\s*(['"]\s*['"]|None|''|"")\s*#\s*TODO
    └─ If found → ⚠️ WARNING (may be intentional)
 
 4. DEPRECATED API PATTERNS (HIGH — blocks task):
-   ├─ Regex: \.__fields__\b|\.dict\(\)|\.json\(\)|pydantic\.v1|from typing import.*Type|@app\.route\([^)]+\)\s+\ndef
-   ├─ Blocks: Pydantic v1 __fields__ access, bare .dict()/.json() calls, old typing imports
+   ├─ Regex core: \.__fields__\b|pydantic\.v1|@app\.route\([^)]+\)\s+\ndef
+   ├─ .dict()/.json(): flag ONLY when the same file imports pydantic AND the call
+   │  target is a model instance — NEVER flag HTTP-client idioms:
+   │  resp.json(), response.json(), request.json(), .to_dict(), .model_dump()
+   ├─ Blocks: Pydantic v1 __fields__ access, pydantic.v1 imports, model.dict() on pydantic models
    ├─ EXCLUDES: files in /tests/, /test_*.py, /conftest.py (external test code uses hasattr(..., '__fields__') legitimately)
    ├─ OK: SQLAlchemy/SQLModel patterns, @app.route with HTTP methods, hasattr check in test files
    └─ If found → ❌ RETRY: "Use current version APIs — check for deprecation alternatives"
@@ -682,10 +715,10 @@ VALIDATE RESULT (mandatory for code tasks):
 ```
 If physical validation fails → **immediate retry with specific feedback** (no silent failure).
 ### 3c — Execution Reality Check (for standalone scripts and tests)
-For \*\*standalone scripts, pure functions, or unit tests\*\*, run the code in sandbox:
+For **standalone scripts, pure functions, or unit tests**, run the code in sandbox:
 ```
 EXECUTION CHECK (only for sandboxable tasks):
-1. Run pytest test\_file.py or python script.py in sandbox
+1. Run pytest test_file.py or python script.py in sandbox
 2. If stderr empty → ✅ pass
 3. If stderr has errors:
 ├─ Use the EXACT error as retry feedback
@@ -714,8 +747,10 @@ CONTEXT BUDGET RULES:
    └─ Never ignore compression triggers — they signal overflow
 
 5. HARD TIMEOUT GUARD (PREVENTS SILENT FAILURES):
-   ├─ HARD CAP: 450s per task. On timeout → kill subagent, DO NOT leave at 0/100
-   │   └─ Generate partial result: what WAS produced, what was missing. Score: 4/10 minimum.
+   ├─ HARD CAP: per-task wall clock = `delegation.child_timeout_seconds` from the LIVE Hermes config
+   │  (single source of truth — do NOT hardcode; fallback 600s only if config is unreadable).
+   │  On timeout → kill subagent, DO NOT leave at 0/100
+   │  └─ Generate partial result: what WAS produced, what was missing. Score: 4/10 minimum.
    ├─ TIMEOUT ESCALATION: 1st → re-dispatch as 2 smaller | 2nd → inline | 3rd → Phase 3j-bis
    └─ TIMEOUT RATE TRACKING: >10% timeout → reduce batch 50% | >25% in 3 batches → downgrade Tier
 ```
@@ -774,7 +809,7 @@ Action: rewrite task, split, or escalate. Limit: 1 attempt per task.
 5. Push fails → single retry, continue loop. Report "N commits not pushed" in final.
 6. ASSEMBLY TASK: after ALL batch tasks verified → modify shared files, DRY check, commit + push
 ```
-\*\*Why in the loop and not at the end:\*\* granular commits after every task = rollback possible for single task if a later task breaks it. Single final commit = all-or-nothing.
+**Why in the loop and not at the end:** granular commits after every task = rollback possible for single task if a later task breaks it. Single final commit = all-or-nothing.
 
 ### 3g-bis — PR Readiness Workflow (CONDITIONAL — only when a PR workflow exists)
 
@@ -851,7 +886,7 @@ elif WORSENED → stop, restart with smaller task
 Problem: code_review/large refactors produce 0/100 on timeout — binary fail.
 
 ```
-TIMEOUT GRACEFUL DEGRADATION (450s cap):
+TIMEOUT GRACEFUL DEGRADATION (cap = `delegation.child_timeout_seconds` from live config):
 1. First timeout → re-dispatch as 2 smaller tasks, deadline "Return SOMETHING within 60s"
 2. Second timeout → run yourself (inline), produce minimal viable version (stubs OK)
 3. Third timeout → grep for patterns, return PARTIAL with explicit gaps
@@ -916,9 +951,9 @@ PATTERN CAPTURE FLOW:
 ```python
 def calibrate(history):
 if len(history) < 3: return defaults()
-avg = mean(h.first\_pass\_rate for h in history[-3:])
+avg = mean(h.first_pass_rate for h in history[-3:])
 if avg < 0.6: return {"granularity": "fine", "threshold": threshold - 0.5}
-if avg > 0.95: return {"granularity": "coarse", "subagents": subagents \* 0.7}
+if avg > 0.95: return {"granularity": "coarse", "subagents": subagents * 0.7}
 return {"granularity": "balanced"}
 ```
 ### 4c — Token-Efficient Recall (pre-loop sequence) — MANDATORY
@@ -1019,7 +1054,7 @@ RECALL SEQUENCE (~1000 tokens):
 ---
 ## Phase 7 — Self-Execution Infrastructure
 
-Supporting files in the skill directory: `scripts/init-state.sh` (bootloader), `references/pattern-store.sql` (SQLite schema), `scripts/install.sh` (installer), `scripts/session_manager.py` (state tracking), `scripts/e2e_test.py` (176 tests).
+Supporting files in the skill directory: `scripts/init-state.sh` (bootloader), `references/pattern-store.sql` (SQLite schema), `scripts/install.sh` (installer), `scripts/session_manager.py` (state tracking), `scripts/pattern_store.py` (Phase 4a gated capture), `scripts/e2e_test.py` (full E2E suite — exact count printed at every run).
 
 | MCP Server | Phase | Usage |
 |-----------|-------|-------|
@@ -1037,7 +1072,7 @@ git push origin main
 ```
 The skill is public (MIT license). Every meaningful improvement bumps the version.
 ---
-## Phase 10 — Skill Ecosystem Integration
+## Phase 8 — Skill Ecosystem Integration
 
 Complementary skills loaded during the loop:
 
@@ -1051,7 +1086,7 @@ Complementary skills loaded during the loop:
 | Post-batch (T3+) | `deploy-release` | Version bump, changelog, deploy, health check |
 
 ---
-## Phase 11 — Long Session Management
+## Phase 9 — Long Session Management
 
 For sessions 2h+ with 30+ turns. Problem: quality degrades as context saturates.
 
@@ -1073,9 +1108,10 @@ Last checkpoint: turn {turn}
 |--------|---------|
 | `scripts/init-state.sh` | Bootloader: auto-detect tier, --clarify, --quality-first, --plan-file, --structural-scan |
 | `scripts/install.sh` | Auto-installer with --dry-run (preview), backup preservation, idempotent re-install |
-| `scripts/e2e_test.py` | 176 checks across ALL phases, tiers 1-4 |
+| `scripts/e2e_test.py` | E2E checks across ALL phases, tiers 1-4 (exact count printed at run time) |
 | `scripts/session_manager.py` | Session state tracking, checkpoint, quality trend, interrupt recovery |
-| `scripts/pattern_cache.json` | Local pattern cache (created automatically, persists across sessions) |
+| `scripts/pattern_store.py` | Gated pattern capture MATERIALIZED: record-execution / capture-candidate / promote / reject / recall / cleanup (JSON cache + SQLite) |
+| `scripts/pattern_cache.json` | Stable pattern cache (bootstrap by init-state.sh, updated only via pattern_store.py promote) |
 
 Run validation: `python scripts/e2e_test.py`
 
