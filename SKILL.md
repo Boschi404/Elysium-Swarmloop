@@ -1,7 +1,7 @@
 ---
 name: elysium-swarmloop
-description: "The Multi-Agent Orchestration Engine with self-learning mechanisms, automatic solution-space exploration, and self-updating bootstrap. v0.16.1: Swarmloop Mode (gauntlet-style) with case-insensitive triggers MAX EFFORT / SWARMLOOP MODE / MESM, smart opt-in approval checkpoints, token-based cost gate (no fabricated prices), conditional PR/docs/RTK sections, Phase 0.6 exploration documented, safe installer (whitelist copy, no reset --hard), pattern-store materialization, partial/pass validation contract via scripts/file_validation.py, e2e coverage for all v0.13+ phases."
-version: 0.16.1
+description: "The Multi-Agent Orchestration Engine with self-learning mechanisms, automatic solution-space exploration, and self-updating bootstrap. v0.17.0: Swarmloop Mode (gauntlet-style) with case-insensitive triggers MAX EFFORT / SWARMLOOP MODE / MESM, smart opt-in approval checkpoints, token-based cost gate (no fabricated prices), conditional PR/docs/RTK sections, safe installer (whitelist copy, no reset --hard), pattern-store materialization, partial/pass validation contract, Activation Contract before 4-Band Filter, enforcement scripts: security_shield.py (Phase 3a), context_guard.py (Phase 3d), file_validation.py (Phase 3b), e2e coverage for all v0.13+ phases."
+version: 0.17.0
 author: Boschi404 + ffazecaldy
 testing-agent: Hermes Agent
 tags: [agentic, auto, workflow, multi-agent, quality, research, iteration, scatter-gather, streaming-gather, self-learning, autonomous-loop, meta-scaling, orchestrator-depth2, self-improving, swarmloop, guardrails, security-shield, context-protection, contracts, clarification, plan-integration, sandbox-racing, quality-first, e2e-tested, project-docs, approval-checkpoints, swarmloop-mode, max-effort, mesm, cost-guardrail, case-insensitive-triggers]
@@ -109,6 +109,7 @@ When two sections describe alternative policies for the same moment in the flow,
 - Tasks under ~30 min estimated duration
 
 **Rule:** a false negative (loop not activated) costs one iteration; a false positive (loop on a trivial task) burns ~8-18K tokens of context. When in doubt → do NOT load, execute directly.
+**Scope:** questa regola "in dubbio" si applica SOLO alla decisione di caricare la skill. Una volta caricata, il 4-Band Filter governa l'intensità, dove "in dubbio" = banda più alta.
 
 ### 🎯 4-Band Filter — First Checkpoint (BEFORE everything)
 
@@ -650,6 +651,7 @@ while goal_not_achieved AND iteration < max:
 ## Phase 3 — Streaming Quality Gate
 ### 3a — Security Shield AUTO (regex-based, ALL tiers)
 **Applied to ALL code-producing tasks, even Tier 1.** If a check fails → immediate retry with specific feedback.
+**ENFORCEMENT (v0.16.1):** `python scripts/security_shield.py <files...>` → JSON `{ok, violations, blocked_count}` (checks 1-4 sui file). `python scripts/security_shield.py --check-command "<cmd>"` → allow|warn|blocked (check 5, pre-execution). Hermes approval resta l'autorità finale — lo script è il pre-check veloce.
 ```
 SECURITY AUTO CHECK (run after file validation, before quality gate):
 1. ZERO HARDCODED SECRETS (CRITICAL — blocks task):
@@ -745,6 +747,7 @@ DO NOT run if task requires:
 └─ Listening server
 ```
 ### 3d — Context Window Protection (CRITICAL for Tier 3-4)
+**ENFORCEMENT (v0.16.1):** `python scripts/context_guard.py --subagents N --tier T [--budget B]` → `{can_dispatch, confidence, diagnostics, suggested_wave_size}`. Hard rule NON negoziabile: `est_context_tokens > budget × 0.8` → `can_dispatch=false` obbligatorio. Banda 0.6–0.8 → caution, wave di 20.
 
 100 summaries = 200K tokens → context overflow → death spiral.
 
@@ -1134,8 +1137,8 @@ Last checkpoint: turn {turn}
 | `scripts/pattern_cache.json` | Stable pattern cache (bootstrap by init-state.sh, updated only via pattern_store.py promote) |
 | `scripts/file_validation.py` | Phase 3b validator: TODO/FIXME/NotImplementedError, empty file, syntax (AST Python), PARTIAL markers. `--strict` for status=pass, `--allow-partial` for status=partial |
 | `scripts/test_file_validation.py` | Smoke tests for file_validation.py (8 checks) |
-| `scripts/security_shield.py` | Phase 3a enforcement: secrets, SQL injection, dangerous shell, deprecated APIs (planned — Blocco A) |
-| `scripts/context_guard.py` | Phase 3d can_dispatch(): context budget estimate, hard rule + confidence (planned — Blocco A) |
+| `scripts/security_shield.py` | Phase 3a enforcement: hardcoded secrets, SQL injection, deprecated APIs (context-aware pydantic), dangerous shell via `--check-command`. Smoke: `test_security_shield.py` (10) |
+| `scripts/context_guard.py` | Phase 3d can_dispatch(): `{can_dispatch, confidence, diagnostics, suggested_wave_size}`, hard rule budget×0.8, wave 20. Smoke: `test_context_guard.py` (7) |
 | `scripts/critic_gate.py` | Tier 3+ critic gate: fresh-context critic, PASS = (critic_score ≥ threshold) AND scripts ok (planned — Blocco C) |
 
 Run validation: `python scripts/e2e_test.py`
