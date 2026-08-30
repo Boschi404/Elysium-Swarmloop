@@ -1,7 +1,7 @@
 ---
 name: elysium-swarmloop
 description: "The Multi-Agent Orchestration Engine with self-learning mechanisms, automatic solution-space exploration, and self-updating bootstrap. v0.16.0: Swarmloop Mode (gauntlet-style) with case-insensitive triggers MAX EFFORT / SWARMLOOP MODE / MESM, smart opt-in approval checkpoints, token-based cost gate (no fabricated prices), conditional PR/docs/RTK sections, Phase 0.6 exploration documented, safe installer (whitelist copy, no reset --hard), pattern-store materialization, e2e coverage for all v0.13+ phases."
-version: 0.16.0
+version: 0.16.1
 author: Boschi404 + ffazecaldy
 testing-agent: Hermes Agent
 tags: [agentic, auto, workflow, multi-agent, quality, research, iteration, scatter-gather, streaming-gather, self-learning, autonomous-loop, meta-scaling, orchestrator-depth2, self-improving, swarmloop, guardrails, security-shield, context-protection, contracts, clarification, plan-integration, sandbox-racing, quality-first, e2e-tested, project-docs, approval-checkpoints, swarmloop-mode, max-effort, mesm, cost-guardrail, case-insensitive-triggers]
