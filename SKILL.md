@@ -699,9 +699,9 @@ For critical tasks: 3-5 identical subagents in parallel, first to pass wins.
 ```
 VALIDATE RESULT (mandatory for code tasks):
 1. read_file(task.files_created[0]) — exists? → if not, ❌ fail immediate
-2. grep -n "TODO\|pass\|stub" task.files_created — dead code? → ❌
+2. python scripts/file_validation.py <files...> — runs: TODO/FIXME/NotImplementedError check, file-vuoto check, syntax check, PARTIAL marker handling. → ❌ if any violation
 3. python -c "from task.module import ..." — syntax ok? → ❌
-4. wc -l task.files_created — file not empty? → ❌
+4. wc -l task.files_created — file not empty? → ❌ (also caught by file_validation.py)
 5. FORMAT & ERROR HANDLING VALIDATION (for data/DB/API tasks):
    ├─ For SQL tasks: verify parameterized queries — grep for "?" or "%s" or ":param" after "execute("
    │   └─ If raw string interpolation found → ❌ RETRY: "Use parameterized queries"
@@ -740,13 +740,13 @@ CONTEXT BUDGET RULES:
 2. Wave dispatch: batch > 20 → waves of 20, collect → process → free context
 3. Summary compression: Tier 2 <500 tokens | Tier 3 <1000 | Tier 4 <2000
 4. 2+ compression triggers → context saturated, reduce subagents
-4. Compression death spiral prevention:
+5. Compression death spiral prevention:
    ├─ If context compression triggers 2+ times in one session:
    │   └─ ⚠️ CONTEXT SATURATED — reduce subagents or summary size
    │   └─ Switch to smaller wave dispatch
    └─ Never ignore compression triggers — they signal overflow
 
-5. HARD TIMEOUT GUARD (PREVENTS SILENT FAILURES):
+6. HARD TIMEOUT GUARD (PREVENTS SILENT FAILURES):
    ├─ HARD CAP: per-task wall clock = `delegation.child_timeout_seconds` from the LIVE Hermes config
    │  (single source of truth — do NOT hardcode; fallback 600s only if config is unreadable).
    │  On timeout → kill subagent, DO NOT leave at 0/100
@@ -890,9 +890,15 @@ TIMEOUT GRACEFUL DEGRADATION (cap = `delegation.child_timeout_seconds` from live
 1. First timeout → re-dispatch as 2 smaller tasks, deadline "Return SOMETHING within 60s"
 2. Second timeout → run yourself (inline), produce minimal viable version (stubs OK)
 3. Third timeout → grep for patterns, return PARTIAL with explicit gaps
-4. HARD RULE: Never 0/100 — always produce SOMETHING (5/100 > 0/100)
+4. HARD RULE: Never 0/100 — always produce SOMETHING (5/100 > 0/100). PARTIAL is always acceptable, never silent.
 5. PRE-EMPTIVE SAVE: subagent writes .partial file every 120s → on timeout, read it for what was completed
 ```
+
+**Phase 3j-bis + Phase 3b — explicit contract:**
+- `file_validation.py --allow-partial` ignores `# PARTIAL:` / `# FIXME: implemented partially` markers (allowed in degraded status).
+- `file_validation.py --strict` (default for status=pass) blocks ALL TODO/FIXME/NotImplementedError regardless of marker.
+- `status="partial"` (timeout/degradation): stubs MAY exist IF marked `# PARTIAL:` and listed in `gaps: [...]`.
+- `status="pass"`: strict validation — no TODO/FIXME/NotImplementedError, no silent stubs.
 ### 3k — Global Re-Check Pass
 
 Post-assembly: read ALL files for cross-module inconsistencies (signatures, naming, dead code, architecture).
