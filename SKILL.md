@@ -1,6 +1,6 @@
 ---
 name: elysium-swarmloop
-description: "The Multi-Agent Orchestration Engine with self-learning mechanisms, automatic solution-space exploration, and self-updating bootstrap. v0.16.0: Swarmloop Mode (gauntlet-style) with case-insensitive triggers MAX EFFORT / SWARMLOOP MODE / MESM, smart opt-in approval checkpoints, token-based cost gate (no fabricated prices), conditional PR/docs/RTK sections, Phase 0.6 exploration documented, safe installer (whitelist copy, no reset --hard), pattern-store materialization, e2e coverage for all v0.13+ phases."
+description: "The Multi-Agent Orchestration Engine with self-learning mechanisms, automatic solution-space exploration, and self-updating bootstrap. v0.16.1: Swarmloop Mode (gauntlet-style) with case-insensitive triggers MAX EFFORT / SWARMLOOP MODE / MESM, smart opt-in approval checkpoints, token-based cost gate (no fabricated prices), conditional PR/docs/RTK sections, Phase 0.6 exploration documented, safe installer (whitelist copy, no reset --hard), pattern-store materialization, partial/pass validation contract via scripts/file_validation.py, e2e coverage for all v0.13+ phases."
 version: 0.16.1
 author: Boschi404 + ffazecaldy
 testing-agent: Hermes Agent
@@ -96,6 +96,20 @@ When two sections describe alternative policies for the same moment in the flow,
 10. 📡 **Scatter (Phase 2)** — parallel dispatch
 **Example:** if Quality Gate says "accept task below threshold" but Escalation Ladder says "escalate to user" → Escalation wins. If Phase 2 says "dispatch 50 streaming" but Context Protection says "max 20-25 in-flight" → Context Protection wins.
 ---
+### 🚦 Activation Contract (read BEFORE 4-Band Filter)
+**LOAD this skill ONLY IF one of these is true:**
+1. User explicitly requests: "elysium", "swarmloop", "max effort", "MESM" (any case)
+2. Task is multi-file with cross-dependencies (≥3 files that must stay consistent)
+3. Task is a long-running autonomous loop (not single prompt→response)
+4. Task requires hierarchical parallel execution (orchestrators + workers)
+
+**DO NOT LOAD this skill for:**
+- Single-file edits, however complex
+- Sequential tasks that gain nothing from parallelism
+- Tasks under ~30 min estimated duration
+
+**Rule:** a false negative (loop not activated) costs one iteration; a false positive (loop on a trivial task) burns ~8-18K tokens of context. When in doubt → do NOT load, execute directly.
+
 ### 🎯 4-Band Filter — First Checkpoint (BEFORE everything)
 
 **BEFORE loading the rest of the skill**, categorize the request into 4 bands. This determines WHETHER to load the skill. Subagent numbers are in the Tier Auto-Detection table (Phase 0a) — this table is a pure on/off switch.
@@ -1118,6 +1132,11 @@ Last checkpoint: turn {turn}
 | `scripts/session_manager.py` | Session state tracking, checkpoint, quality trend, interrupt recovery |
 | `scripts/pattern_store.py` | Gated pattern capture MATERIALIZED: record-execution / capture-candidate / promote / reject / recall / cleanup (JSON cache + SQLite) |
 | `scripts/pattern_cache.json` | Stable pattern cache (bootstrap by init-state.sh, updated only via pattern_store.py promote) |
+| `scripts/file_validation.py` | Phase 3b validator: TODO/FIXME/NotImplementedError, empty file, syntax (AST Python), PARTIAL markers. `--strict` for status=pass, `--allow-partial` for status=partial |
+| `scripts/test_file_validation.py` | Smoke tests for file_validation.py (8 checks) |
+| `scripts/security_shield.py` | Phase 3a enforcement: secrets, SQL injection, dangerous shell, deprecated APIs (planned — Blocco A) |
+| `scripts/context_guard.py` | Phase 3d can_dispatch(): context budget estimate, hard rule + confidence (planned — Blocco A) |
+| `scripts/critic_gate.py` | Tier 3+ critic gate: fresh-context critic, PASS = (critic_score ≥ threshold) AND scripts ok (planned — Blocco C) |
 
 Run validation: `python scripts/e2e_test.py`
 
