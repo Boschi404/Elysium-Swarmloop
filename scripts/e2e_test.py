@@ -1675,8 +1675,13 @@ def test_v015_skill_contract() -> None:
 
     # ── Version + frontmatter ──
     subsection("Version & Frontmatter")
-    check("[S5] Frontmatter version is 0.16.0",
-          re.search(r'^version:\s*0\.16\.0\s*$', content, re.M) is not None)
+    fm_version = re.search(r'^version:\s*(\d+\.\d+\.\d+)\s*$', content, re.M)
+    desc_version = re.search(r'v(\d+\.\d+\.\d+):', content)
+    check("[S5] Frontmatter has valid semver version",
+          fm_version is not None)
+    check("[S5] version field matches description version",
+          fm_version is not None and desc_version is not None
+          and fm_version.group(1) == desc_version.group(1))
     check("[S5] user_preferences has max_swarmloop_rounds cap",
           re.search(r'^  max_swarmloop_rounds:\s*3\s*$', content, re.M) is not None)
     check("[S5] user_preferences has max_swarmloop_subagents cap",
