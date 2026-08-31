@@ -1,3 +1,5 @@
 .hermes/
 __pycache__/
 *.pyc
+workspaces/
+benchmarks/__pycache__/

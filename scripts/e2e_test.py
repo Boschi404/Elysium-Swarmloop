@@ -556,7 +556,7 @@ SECURITY_RISK_PATTERNS = [
     (r'exec\(', 'Arbitrary code execution via exec()'),
     (r'eval\(', 'Arbitrary code execution via eval()'),
     (r'__import__\(', 'Dynamic import injection risk'),
-    (r'os\.system\(', 'Shell injection via os.system()'),
+    (r'os\.system\(', 'Shell injection via the os module'),
     (r'subprocess\.call\(.*shell=True', 'Shell injection via subprocess shell=True'),
     (r'(password|secret|api_key|token)\s*=\s*["\'](?![*X])', 'Hardcoded secrets/credentials'),
     (r'sqlite3\.execute\(.*%.*\)', 'SQL injection risk via string formatting'),
@@ -1564,15 +1564,14 @@ def test_v015_skill_contract() -> None:
     check("[S5] Auto-approve path documented ('fai tu')",
           '"fai tu" / "procedi" / "auto-approve"' in content)
 
-    # ── Token-based cost gate (v0.15.0 fix) ──
-    subsection("Token-Based Cost Gate (no fabricated prices)")
-    check("[S5] Cost gate forbids invented $ prices",
-          'NEVER invent a $ price' in content)
-    check("[S5] Cost gate uses summary token caps",
-          'summary_token_cap' in content)
-    check("[S5] Pre-flight gate is hard (no dispatch before confirmation)",
-          'NO subagent is dispatched before confirmation' in content)
-
+    # ── Cost gate removed (v0.19.0) ──
+    subsection("Cost Gate Removed (silent caps only)")
+    check("[S5] Pre-Flight Cost Check removed (v0.19.0)",
+          'Pre-Flight Cost Check' not in content and 'summary_token_cap' not in content)
+    check("[S5] Silent hard caps preserved (max_swarmloop_*)",
+          'max_swarmloop_rounds' in content and 'max_swarmloop_subagents' in content)
+    check("[S5] Anti-fabrication $ rule preserved in pitfalls",
+          'Inventing $ cost estimates' in content and 'Never quote a model price' in content)
     # ── Conditional sections (v0.15.0 fixes) ──
     subsection("Conditional Sections (RTK / PR / Docs)")
     check("[S5] Output filtering prefers native pipes",

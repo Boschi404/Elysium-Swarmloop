@@ -21,7 +21,7 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 STATE_FILE="${STATE_FILE:-$(pwd)/.elysium-state.json}"
 DEFAULT_SUBAGENTS=100
 START_TIME="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
-VERSION="v0.18.0"
+VERSION="v0.19.0"
 
 # ---- helpers -----------------------------------------------------------
 

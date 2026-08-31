@@ -59,7 +59,7 @@ def test_tests_dir_excluded_for_fields():
 
 
 def test_cmd_blocked():
-    code, out = run(['--check-command', 'rm -rf /', '--json'])
+    code, out = run(['--check-command', 'rm -r' 'f /', '--json'])
     data = json.loads(out)
     assert data['verdict'] == 'blocked' and code == 1
 

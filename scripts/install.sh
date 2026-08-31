@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # =============================================================================
-# install.sh — Elysium Swarmloop Auto-Installer  v0.18.0
+# install.sh — Elysium Swarmloop Auto-Installer  v0.19.0
 # =============================================================================
 # Uso:
 #   bash install.sh              # installa
@@ -23,7 +23,7 @@
 # =============================================================================
 set -euo pipefail
 
-VERSION="0.18.0"
+VERSION="0.19.0"
 REPO_URL="https://github.com/Boschi404/Elysium-Swarmloop.git"
 DRY_RUN=false
 [[ "${1:-}" == "--dry-run" ]] && DRY_RUN=true

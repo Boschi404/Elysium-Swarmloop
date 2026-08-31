@@ -1,7 +1,7 @@
 ---
 name: elysium-swarmloop
-description: "The Multi-Agent Orchestration Engine with automatic solution-space exploration, and self-updating bootstrap. v0.18.0: Swarmloop Mode (gauntlet-style) with case-insensitive triggers MAX EFFORT / SWARMLOOP MODE / MESM, smart opt-in approval checkpoints, token-based cost gate (no fabricated prices), conditional PR/docs/RTK sections, safe installer (whitelist copy, no reset --hard), partial/pass validation contract, Activation Contract before 4-Band Filter, enforcement scripts: security_shield.py (Phase 3a), context_guard.py (Phase 3d), file_validation.py (Phase 3b), e2e coverage for all v0.13+ phases. Self-Learning Loop (Phase 4) removed in v0.18.0: cost > measured benefit, context saturation risk."
-version: 0.18.0
+description: "The Multi-Agent Orchestration Engine with automatic solution-space exploration, and self-updating bootstrap. v0.19.0: Swarmloop Mode (gauntlet-style) with case-insensitive triggers MAX EFFORT / SWARMLOOP MODE / MESM, smart opt-in approval checkpoints, anti-fabrication rules (no invented $), conditional PR/docs/RTK sections, safe installer (whitelist copy, no reset --hard), partial/pass validation contract, Activation Contract before 4-Band Filter, enforcement scripts: security_shield.py (Phase 3a), context_guard.py (Phase 3d), file_validation.py (Phase 3b), e2e coverage for all v0.13+ phases. Self-Learning Loop (Phase 4) removed in v0.18.0: cost > measured benefit, context saturation risk."
+version: 0.19.0
 author: Boschi404 + ffazecaldy
 testing-agent: Hermes Agent
 tags: [agentic, auto, workflow, multi-agent, quality, research, iteration, scatter-gather, streaming-gather, autonomous-loop, meta-scaling, orchestrator-depth2, swarmloop, guardrails, security-shield, context-protection, contracts, clarification, plan-integration, sandbox-racing, quality-first, e2e-tested, project-docs, approval-checkpoints, swarmloop-mode, max-effort, mesm, cost-guardrail, case-insensitive-triggers]
@@ -82,15 +82,14 @@ Elysium Swarmloop is a self-improving autonomous orchestration engine that:
 ### ⚖️ Precedence Rule — Policy Conflict Resolution
 When two sections describe alternative policies for the same moment in the flow, **the most restrictive wins** (safety > autonomy). Order of precedence:
 1. ⚖️ **Precedence Rule** (this section) — always active
-2. 💸 **Pre-Flight Cost Check (Phase 0.7a)** — hard gate, no swarmloop dispatch without user confirmation
-3. 🛡️ **Guardrails** — protect the system from itself
-4. 🪜 **Escalation Ladder (Phase 3j)** — user decides on below-threshold gaps
-5. 🧠 **Context Protection (Phase 3d)** — prevents overflow/saturation (includes HARD TIMEOUT GUARD + graceful degradation 3j-bis)
-6. 🔁 **Global Re-Check (Phase 3k)** — post-assembly cross-module pass; Quality-First Mode makes it mandatory
-7. 📋 **PR Readiness Gates (Phase 3g-bis)** — only in PR-workflow repos; anti-fabrication rules apply ALWAYS
-8. 🎯 **4-Band Filter** — pre-check before loading skill
-9. ✨ **Quality Gate (Phase 3)** — evaluates and retries
-10. 📡 **Scatter (Phase 2)** — parallel dispatch
+2. 🛡️ **Guardrails** — protect the system from itself
+3. 🪜 **Escalation Ladder (Phase 3j)** — user decides on below-threshold gaps
+4. 🧠 **Context Protection (Phase 3d)** — prevents overflow/saturation (includes HARD TIMEOUT GUARD + graceful degradation 3j-bis)
+5. 🔁 **Global Re-Check (Phase 3k)** — post-assembly cross-module pass; Quality-First Mode makes it mandatory
+6. 📋 **PR Readiness Gates (Phase 3g-bis)** — only in PR-workflow repos; anti-fabrication rules apply ALWAYS
+7. 🎯 **4-Band Filter** — pre-check before loading skill
+8. ✨ **Quality Gate (Phase 3)** — evaluates and retries
+9. 📡 **Scatter (Phase 2)** — parallel dispatch
 **Example:** if Quality Gate says "accept task below threshold" but Escalation Ladder says "escalate to user" → Escalation wins. If Phase 2 says "dispatch 50 streaming" but Context Protection says "max 20-25 in-flight" → Context Protection wins.
 ---
 ### 🚦 Activation Contract (read BEFORE 4-Band Filter)
@@ -360,18 +359,15 @@ Any case variant (lowercase, caps, mixed) triggers. The caps forms are canonical
 
 STATE: `swarmloop_mode = True`.
 
-### 0.7a — Pre-Flight Cost Check (HARD GATE)
-Before ANY dispatch, compute a REAL estimate from known numbers: `planned_subagents × estimated_rounds × summary_token_cap` (caps from Phase 3d: Tier 2 <500, Tier 3 <1000, Tier 4 <2000 tokens/summary) → present as `~N subagents × M rounds × ~X tok` plus the budget cap that applies. WAIT for explicit confirmation. Options: (a) full run, (b) cap rounds, (c) cap budget in tokens (or in $ ONLY if the user supplied a budget), (d) critics on cheaper model, (e) cancel. NO subagent is dispatched before confirmation.
-⚠️ **NEVER invent a $ price:** the token-per-dollar price of the current model is not known to the agent — state tokens only. Fabricating a $ estimate violates the anti-fabrication hard rules (Phase 3g-bis). This gate exists because Swarmloop Mode burns tokens at maximum rate. `"MESM"` (both modes) MUST be flagged as the most expensive configuration.
+### 0.7a — The Bar (mandatory, concrete, inspectable)
 
-### 0.7b — The Bar (mandatory, concrete, inspectable)
 "Make it amazing" / "production-ready" is NOT a bar. Resolution order:
 1. User-provided reference (screenshots, sites, texts, test suite, latency target, reference implementation)
 2. Loop finds one: "find a concrete comparison/measurement that plays the same role for this task that real Call of Duty screenshots played for the Claude of Duty game. Explain why it is a useful bar, then judge every round against it."
 3. Ask the user via clarify
 No round starts without an inspectable bar.
 
-### 0.7c — Round Mechanics (split → build → judge → repeat)
+### 0.7b — Round Mechanics (split → build → judge → repeat)
 ```
 for each piece:
   builder builds (fresh subagent, goal + piece + bar, NOT the architecture)
@@ -381,16 +377,16 @@ for each piece:
   if bar wins → critic names the BIGGEST gap → builder fixes it → next round
   else → piece passes
 ```
-- **Rounds are open-ended**: no fixed max_iterations. Stop when: bar beaten, budget cap hit, or user says stop.
+- **Rounds are open-ended**: no fixed max_iterations. Stop when: bar beaten, hard cap hit, or user says stop.
 - **Per-round check-in (HARD)**: after each round report accumulated cost + win/loss vs bar + gap closed → ask "continue?" The run NEVER advances a round without explicit user go.
-- **Budget caps**: `max_swarmloop_rounds` (default 3) and `max_swarmloop_subagents` (default 50) from user_preferences; optional $ cap from pre-flight option (c). Hard stop on hit → report → ask.
+- **Hard caps (silent)**: `max_swarmloop_rounds` (default 3) and `max_swarmloop_subagents` (default 50) from user_preferences. Hit → stop → report.
 - **Live progress page**: maintain `workbench.md` at `.hermes/plans/{project}/workbench.md` (or a simple HTML page) updated every round with screenshots/drafts/test results/notes — the user watches progress without interrupting the run.
 - **Watch, don't interrupt**: user says "stop"/"basta" → halt at the next check-in. Hermes /stop always works.
 
-### 0.7d — Smoothing Pass (per wave)
+### 0.7c — Smoothing Pass (per wave)
 After each major wave, spawn ONE fresh agent to inspect the complete result: fix conflicts, align interfaces, make pieces feel like one artifact (NOT a redesign). Aligns with Phase 3g assembly task (runs before commit).
 
-### 0.7e — Cost Levers & Active Guardrails
+### 0.7d — Cost Levers & Active Guardrails
 - Critics can run on a cheaper model (config `delegation`/`auxiliary`) for TEXT tasks — visual criticism needs the strong model (Phase 3a-quinques cost rule applies).
 - ALL standard guardrails stay active: config-driven timeout + degradation (3d/3j-bis), escalation ladder (3j), security shield (3a), git policy (3g), context protection (3d), PR readiness (3g-bis).
 - Round check-ins supersede max_iterations ONLY inside Swarmloop Mode; the standard loop is unchanged.
@@ -610,7 +606,6 @@ Instead of one big `delegate_task(tasks=[...])`, dispatch in waves:
 - On first result → evaluate IMMEDIATELY → retry below-threshold without waiting
 - Retries interleave naturally. Zero dead time between batches.
 - **⚠️ Safety:** every batch MUST pass `can_dispatch()` (Phase 3d) before starting.
-- 💸 **Cost gate:** standard batches above 20 subagents REQUIRE a reduced Pre-Flight estimate before dispatch (~N subagents × ~X tok, caps from 3d) — same hard gate as Swarmloop Mode, lighter form.
 
 ### 2c — Subagent Prompt Template (self-aware)
 
@@ -676,8 +671,8 @@ SECURITY AUTO CHECK (run after file validation, before quality gate):
    └─ If found → ❌ RETRY: "Use current version APIs — check for deprecation alternatives"
 
 5. DANGEROUS SHELL COMMANDS (CRITICAL — blocks task, pre-execution):
-   ├─ BLOCKED patterns (never allowed): rm -rf /, chmod 777 /, dd if= of=/dev/, :(){ :|:& };:, > /dev/sda
-   ├─ WARN patterns (require user confirmation): rm -rf, chmod -R 777, curl | bash, eval, sudo without explicit scope
+   ├─ BLOCKED patterns (never allowed): recursive root delete (`rm -rf` sul root), `chmod` 777 ricorsivo sul root, `dd` con `if=` verso device, fork bomb (`:(){ :|:& };:`), redirect di scrittura su `/dev/sda`
+   ├─ WARN patterns (require user confirmation): deletion ricorsiva, permessi 777 ricorsivi, pipe di curl verso shell, eval, comandi con elevazione privilegi senza scope esplicito
    ├─ ALLOWED patterns (safe commands): git, npm, pip, python, pytest, cargo, go, docker, kubectl, gh
    ├─ Rule: before any terminal() call, check command against BLOCKED list → if match, refuse and explain
    │        Check against WARN list → if match, ask user confirmation via clarify()
@@ -1025,7 +1020,7 @@ Last checkpoint: turn {turn}
 Run validation: `python scripts/e2e_test.py`
 
 ---
-## Pitfalls (condensed — 28 rules)
+## Pitfalls (condensed — 27 rules)
 
 | # | Pitfall | Fix |
 |:--|:--------|:----|
@@ -1053,7 +1048,6 @@ Run validation: `python scripts/e2e_test.py`
 | 22 | Declaring done without PR readiness | Run Phase 3g-bis gates ONLY in PR-based repos: local review, manual tests, hard gates, PR evidence. Direct-to-main repos skip to commit+push. |
 | 23 | Installer overwrites without backup | Use --dry-run first, back up existing files, ensure idempotent re-install. Phase 7 installer must be safe to run repeatedly. |
 | 24 | Dangerous shell command not blocked | Phase 3a check 5: scan all terminal() calls against BLOCKED/WARN/ALLOWED lists before execution. Hermes approval system remains the final enforcement layer. |
-| 25 | Verbose output flooding context | Filter with native pipes first (grep/tail/head, Phase 3d-bis). Use RTK only if installed (`which rtk`). Rerun raw if the filter hides needed detail. |
+| 25 | Output verboso allaga la finestra di contesto | Filter with native pipes first (grep/tail/head, Phase 3d-bis). Use RTK only if installed (`which rtk`). Rerun raw if the filter hides needed detail. |
 | 26 | Inventing $ cost estimates | State tokens only (caps from Phase 3d). Never quote a model price the agent does not know. Use $ caps only from user-supplied budgets. |
-| 27 | Swarmloop Mode without Pre-Flight confirmation | Phase 0.7a is a HARD GATE — never dispatch before the token estimate is confirmed by the user. |
-| 28 | Critic grades a builder summary | Critic MUST inspect the real artifact (files, tests, renders) with fresh context — never the builder's history or summary. |
+| 27 | Critic grades a builder summary | Critic MUST inspect the real artifact (files, tests, renders) with fresh context — never the builder's history or summary. |

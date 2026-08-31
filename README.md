@@ -8,13 +8,13 @@
 </p>
 
 <p align="center">
-  <img src="https://img.shields.io/badge/version-0.18.0-34d399?style=flat-square&labelColor=0f172a">
+  <img src="https://img.shields.io/badge/version-0.19.0-34d399?style=flat-square&labelColor=0f172a">
   <img src="https://img.shields.io/badge/license-MIT-22d3ee?style=flat-square&labelColor=0f172a">
   <img src="https://img.shields.io/badge/subagents-100-a78bfa?style=flat-square&labelColor=0f172a">
   <img src="https://img.shields.io/badge/depth-2-fbbf24?style=flat-square&labelColor=0f172a">
 </p>
 
-> ⚠️ **Stato di verifica (v0.18.0):** Swarmloop Mode (Phase 0.7) con trigger case-insensitive, checkpoint di approvazione smart opt-in, cost gate token-based (niente prezzi inventati), sezioni PR/RTK/docs condizionali, skill lean senza storico versioni, Phase 0.6 exploration documentata e allineata all'e2e, installer safe (whitelist copy + --dry-run reale, niente reset --hard), timeout single-source da config. E2E: 231/231 check passati. **Self-Learning Loop (Phase 4) rimosso in v0.18.0** — costo > beneficio misurato, rischio saturazione contesto; pattern store (SQLite) eliminato.
+> ⚠️ **Stato di verifica (v0.19.0):** Swarmloop Mode (Phase 0.7) con trigger case-insensitive, checkpoint di approvazione smart opt-in, anti-fabrication rules (niente prezzi inventati), sezioni PR/RTK/docs condizionali, skill lean senza storico versioni, Phase 0.6 exploration documentata e allineata all'e2e, installer safe (whitelist copy + --dry-run reale, niente reset --hard), timeout single-source da config. E2E: 231/231 check passati. **Self-Learning Loop rimosso (v0.18.0)** — costo > beneficio. **Pre-Flight Cost Check rimosso (v0.19.0)** — restano hard caps silenziosi e per-round check-in.
 
 ## What is Elysium Swarmloop?
 
@@ -25,7 +25,7 @@ A Hermes Agent skill that transforms every prompt into an autonomous agentic wor
 - **Streaming quality gate** — retry failures immediately, don't wait for batch completion
 - **Zero human intervention** — the loop keeps going until the goal is achieved
 - **Tier-based execution** — Tier 1 (fast-path) to Tier 4 (full epic), auto-detected
-- **Swarmloop Mode** — gauntlet-style builder/critic loop against an external reference bar, with token-based cost gates (v0.15.0)
+- **Swarmloop Mode** — gauntlet-style builder/critic loop against an external reference bar, with per-round check-ins and silent hard caps (v0.15.0)
 
 ## Repository Structure
 
@@ -106,7 +106,7 @@ Elysium Swarmloop activates its special modes **only when you explicitly ask**. 
 |---|---|---|
 | `MAX EFFORT` / `max effort` | Quality-First Mode | Raises the acceptance threshold to 9/10 (no exceptions), up to 9 iterations, fine-grained decomposition, mandatory Global Re-Check pass. Use for production-critical or client-facing deliverables. |
 | `SWARMLOOP MODE` / `swarmloop mode` | Swarmloop Mode (gauntlet-style loop) | The lead agent splits the goal into the smallest independently judgeable pieces. Each piece gets a **builder** and a separate **critic with fresh context** that compares the real output against an **external reference bar** (blind A/B when possible). If the bar wins, the critic names the biggest gap and the builder fixes it — open-ended rounds until our output beats the bar or you stop the run. Works for ANY domain: code, websites, writing, research, design, marketing. |
-| `MESM` / `mesm` | Max Effort Swarmloop Mode | `MAX EFFORT` + `SWARMLOOP MODE` combined: 9/10 threshold inside a gauntlet loop. The most expensive configuration — the pre-flight token estimate flags it as such. |
+| `MESM` / `mesm` | Max Effort Swarmloop Mode | `MAX EFFORT` + `SWARMLOOP MODE` combined: 9/10 threshold inside a gauntlet loop. The most expensive configuration. |
 
 **Standard triggers** (case-insensitive, unchanged): `attiva elysium`, `modalità elysium`, `elysium mode`, `swarmloop` — force full loop activation without any mode override.
 
@@ -128,17 +128,16 @@ Elysium Swarmloop activates its special modes **only when you explicitly ask**. 
 |---|---|---|
 | Quality bar | Internal rubric (threshold 7/10) | **External reference** you provide (screenshots, sites, texts, test suite, reference implementation) |
 | Critic | Actor-Critic only after 3+ retries | **Independent critic with fresh context for every piece**, blind A/B vs the bar |
-| Rounds | Fixed by tier (`max_iterations`) | **Open-ended** — stops when the bar is beaten, a budget cap is hit, or you say stop |
-| Cost control | Standard limits | **Pre-Flight Cost Check** + per-round check-in (see below) |
+| Rounds | Fixed by tier (`max_iterations`) | **Open-ended** — stops when the bar is beaten, a hard cap is hit, or you say stop |
+| Cost control | Standard limits | **Per-round check-in** (see below) + silent hard caps |
 
 #### Swarmloop Mode — cost safety (Phase 0.7)
 
-Because the gauntlet loop burns tokens at maximum rate, it is wrapped in hard gates:
+Because the gauntlet loop burns tokens at maximum rate, it keeps light guardrails:
 
-1. **Pre-Flight Cost Check** — before ANY subagent is dispatched: `~N subagents × M rounds × ~X tok ≈ $Y`, then it waits for your explicit confirmation. Options: full run / cap rounds / cap budget $ / critics on a cheaper model / cancel.
-2. **Per-round check-in** — after every round: accumulated cost + win/loss vs bar + gap closed → "continue?" The run never advances a round without your go.
-3. **Budget caps** — `max_swarmloop_rounds` (default 3) and `max_swarmloop_subagents` (default 50), configurable in the skill's `user_preferences`; optional $ cap.
-4. **Live progress page** — a `workbench.md` updated every round (screenshots, drafts, test results) so you can watch the run evolve without interrupting it.
+1. **Per-round check-in** — after every round: accumulated cost + win/loss vs bar + gap closed → "continue?" The run never advances a round without your go.
+2. **Silent hard caps** — `max_swarmloop_rounds` (default 3) and `max_swarmloop_subagents` (default 50), configurable in the skill's `user_preferences`. Hit → stop → report. No upfront estimate, no confirmation gate (removed in v0.19.0).
+3. **Live progress page** — a `workbench.md` updated every round (screenshots, drafts, test results) so you can watch the run evolve without interrupting it.
 
 The bar itself must be concrete and inspectable — "make it amazing" is refused. If you don't provide one, the loop finds a suitable reference or asks you.
 

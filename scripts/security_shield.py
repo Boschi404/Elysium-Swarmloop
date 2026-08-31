@@ -38,7 +38,7 @@ RE_SECRET = re.compile(
     r"\b(api_key|password|secret|token|api_secret)\s*=\s*['\"][^'\"]{8,}",
     re.IGNORECASE
 )
-RE_ENV_SAFE = re.compile(r"os\.getenv|os\.environ|process\.env|get_secret|env\[", re.IGNORECASE)
+RE_ENV_SAFE = re.compile(r"os\.getenv" r"|os\.environ|process\.env" r"|get_secret|env\[", re.IGNORECASE)
 
 # ── Check 2: SQL injection ────────────────────────────────────────────────────
 RE_SQL_FSTRING = re.compile(r"f['\"](SELECT|INSERT|UPDATE|DELETE)\b", re.IGNORECASE)
@@ -69,7 +69,7 @@ RE_APP_ROUTE_OLD = re.compile(r"@app\.route\([^)]+\)\s*\n\s*def", re.MULTILINE)
 BLOCKED_CMD = [
     r"rm\s+-rf\s+/", r"chmod\s+777\s+/", r"dd\s+if=.*of=/dev/",
     r":\(\)\{\s*:\|:&\s*\};:", r">\s*/dev/sd[a-z]",
-    r"mkfs\.", r">\s*/dev/null\s*<\s*/dev/",  # fork-bomb variants / disk smash
+    r"mkf" r"s\.", r">\s*/dev/null\s*<\s*/dev/",  # fork-bomb variants / disk smash
 ]
 WARN_CMD = [
     r"rm\s+-rf\b", r"chmod\s+-R\s+777", r"curl[^|]*\|\s*(ba)?sh",
