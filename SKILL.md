@@ -1,10 +1,10 @@
 ---
 name: elysium-swarmloop
-description: "The Multi-Agent Orchestration Engine with self-learning mechanisms, automatic solution-space exploration, and self-updating bootstrap. v0.17.0: Swarmloop Mode (gauntlet-style) with case-insensitive triggers MAX EFFORT / SWARMLOOP MODE / MESM, smart opt-in approval checkpoints, token-based cost gate (no fabricated prices), conditional PR/docs/RTK sections, safe installer (whitelist copy, no reset --hard), pattern-store materialization, partial/pass validation contract, Activation Contract before 4-Band Filter, enforcement scripts: security_shield.py (Phase 3a), context_guard.py (Phase 3d), file_validation.py (Phase 3b), e2e coverage for all v0.13+ phases."
-version: 0.17.0
+description: "The Multi-Agent Orchestration Engine with automatic solution-space exploration, and self-updating bootstrap. v0.18.0: Swarmloop Mode (gauntlet-style) with case-insensitive triggers MAX EFFORT / SWARMLOOP MODE / MESM, smart opt-in approval checkpoints, token-based cost gate (no fabricated prices), conditional PR/docs/RTK sections, safe installer (whitelist copy, no reset --hard), partial/pass validation contract, Activation Contract before 4-Band Filter, enforcement scripts: security_shield.py (Phase 3a), context_guard.py (Phase 3d), file_validation.py (Phase 3b), e2e coverage for all v0.13+ phases. Self-Learning Loop (Phase 4) removed in v0.18.0: cost > measured benefit, context saturation risk."
+version: 0.18.0
 author: Boschi404 + ffazecaldy
 testing-agent: Hermes Agent
-tags: [agentic, auto, workflow, multi-agent, quality, research, iteration, scatter-gather, streaming-gather, self-learning, autonomous-loop, meta-scaling, orchestrator-depth2, self-improving, swarmloop, guardrails, security-shield, context-protection, contracts, clarification, plan-integration, sandbox-racing, quality-first, e2e-tested, project-docs, approval-checkpoints, swarmloop-mode, max-effort, mesm, cost-guardrail, case-insensitive-triggers]
+tags: [agentic, auto, workflow, multi-agent, quality, research, iteration, scatter-gather, streaming-gather, autonomous-loop, meta-scaling, orchestrator-depth2, swarmloop, guardrails, security-shield, context-protection, contracts, clarification, plan-integration, sandbox-racing, quality-first, e2e-tested, project-docs, approval-checkpoints, swarmloop-mode, max-effort, mesm, cost-guardrail, case-insensitive-triggers]
 user_preferences:
   language: ""
   auto_commit: false
@@ -14,10 +14,10 @@ user_preferences:
   max_swarmloop_subagents: 50
 ---
 # Elysium Swarmloop
-The Multi-Agent Orchestration Engine with self-learning mechanisms
+The Multi-Agent Orchestration Engine
 *Towards Agentic Utopia.*
 
-> ⚠️ **Trasparenza:** il claim di self-learning resta "non verificato" — lo scoring engine ha un ceiling effect su correctness (dettagli in `risultati/AUDIT_SCORING_ENGINE.md`).
+> ⚠️ **v0.18.0:** lo **Self-Learning Loop (Phase 4) è stato RIMOSSO**. Pattern capture, recall cross-session, calibrazione e pattern store (SQLite + JSON) non esistono più: costavano ~1000 token/sessione di Recall + held-out subagent per ogni candidate, senza beneficio misurabile (il Δ non è mai stato verificato). Resta solo la memoria nativa Hermes (Level 1 `ES[...]`) come uso facoltativo, NON come requisito di loop.
 
 ## Required Config (BEFORE FIRST USE)
 
@@ -64,18 +64,15 @@ Override any preference by editing the `user_preferences:` section at the top of
 
 ## Philosophy
 
-**I don't follow a workflow. I am the loop. And I improve myself.**
-
-> ⚠️ Il claim "I improve myself" si riferisce al meccanismo di Phase 4 (pattern capture, recall, calibration). La sua efficacia quantitativa non è ancora verificata con scorer affidabili — self-learning Δ non ri-benchmarkato con 6+ loop. Vedi nota di trasparenza all'inizio del documento.
+**I don't follow a workflow. I am the loop.**
 
 Elysium Swarmloop is a self-improving autonomous orchestration engine that:
 1. **Decides what to do next** — state machine, not recipe
 2. **Executes at any scale** — 1 to 100 subagents per batch
 3. **Orchestrates hierarchically** — depth-2: orchestrators spawn workers (depth-3 with B1-B6 rules for complex tasks)
 4. **Evaluates and retries instantly** — streaming gather, no batching delay
-5. **Learns and evolves** — captures patterns, calibrates, bumps version on improvement
-6. **Validates at every layer** — security, file integrity, execution, context budget
-7. **Protects itself** — 10 guardrails prevent self-learning contamination
+5. **Validates at every layer** — security, file integrity, execution, context budget
+6. **Protects itself** — 10 guardrails prevent quality degradation
 **Guardrails for self-modification:**
 - Every edit to this skill must **improve the autonomous workflow**, not add project-specific trivia
 - No project error messages, framework-specific bugs, or dependency issues
@@ -86,7 +83,7 @@ Elysium Swarmloop is a self-improving autonomous orchestration engine that:
 When two sections describe alternative policies for the same moment in the flow, **the most restrictive wins** (safety > autonomy). Order of precedence:
 1. ⚖️ **Precedence Rule** (this section) — always active
 2. 💸 **Pre-Flight Cost Check (Phase 0.7a)** — hard gate, no swarmloop dispatch without user confirmation
-3. 🛡️ **Guardrails (Phase 4e)** — protect the system from itself
+3. 🛡️ **Guardrails** — protect the system from itself
 4. 🪜 **Escalation Ladder (Phase 3j)** — user decides on below-threshold gaps
 5. 🧠 **Context Protection (Phase 3d)** — prevents overflow/saturation (includes HARD TIMEOUT GUARD + graceful degradation 3j-bis)
 6. 🔁 **Global Re-Check (Phase 3k)** — post-assembly cross-module pass; Quality-First Mode makes it mandatory
@@ -130,11 +127,10 @@ IF band == "low":
 └─ No loop, no subagents, no plan
 IF band == "medium":
 └─ Load SKILL.md, fast path: decompose → dispatch → gather → done
-└─ Max 1 retry, no self-learning
+└─ Max 1 retry
 IF band == "high" or "extreme":
 └─ Load full SKILL.md
 └─ Full loop with all phases
-└─ Self-learning active
 ```
 **When in doubt, prefer the HIGHER band.** It's better to load the skill for a medium task and discover it was low, than to skip it for a high task.
 
@@ -162,7 +158,6 @@ decompose() # break remaining work into tasks
 scatter() # dispatch all in parallel
 stream() # process each result as it arrives
 # immediate retry on failures
-learn() # save patterns, calibrate, improve
 ```
 ---
 ## 🚀 Quick Start
@@ -173,8 +168,7 @@ GOAL: "Crea sistema di prenotazione ristorante"
 3. SCATTER → dispatch 40 subagenti in parallelo
 4. STREAM → processa streaming: 42 pass, 8 fail → retry immediati
 5. CONVERGE → 3 iterazioni, 100% pass
-6. LEARN → salva pattern "decomposizione per_file per CRUD"
-7. REPORT → first-pass 84%, qualità 8.6/10, 5 minuti
+6. REPORT → first-pass 84%, qualità 8.6/10, 5 minuti
 ```
 ---
 ## Phase 0 — Autonomous Loop Engine (ALWAYS ACTIVE)
@@ -187,7 +181,7 @@ STATE = {  # canonical JSON keys emitted by scripts/init-state.sh are in <bracke
     "tasks_completed": [] [<completed>], "tasks_failed": [] [<failed>], "tasks_in_flight": [] [<in_flight>],
     "iteration": 0, "max_iterations": auto_calc(tier),
     "first_pass_rate": None, "avg_quality_score": None,
-    "self_lessons": [], "codebase_familiarity": "unknown",
+        "codebase_familiarity": "unknown",
     "quality_first": False, "swarmloop_mode": False, "global_recheck": False,
     "clarify_mode": False, "plan_approved": False, "plan_file": "", "start_time": now(),
 }
@@ -238,7 +232,7 @@ elif done & OK → COMPLETE | elif done & LOW → quality loop
 
 ## Phase 0.5a — Clarification Interview
 
-Before decomposing (Tier 3+), ask 5-6 questions in one message. The set is DOMAIN-ADAPTIVE: for backend goals use DB/auth/deploy below; for research/writing/design goals ask about audience, format, references/bar, length/scope instead — never ask backend questions for non-code goals:
+Before decomposing (Tier 3+), ask 5-6 questions in one message. The set is DOMAIN-ADAPTIVE: for backend goals use DB/auth/deploy below; for research/writing/design goals ask about audience, format, literature scope, length/scope instead — never ask backend questions for non-code goals:
 1. DB: SQLite (default), PostgreSQL, or other? *(code only)*
 2. Frontend: None (default), React, Vue?
 3. Auth: JWT (default), session, or none?
@@ -345,9 +339,9 @@ Before decomposing a Tier 3+ goal, explore the solution space instead of default
 
 ### 0.6b — Trade-off Matrix
 - Score all proposals across axes (complexity, risk, speed-to-value, maintainability); each gains `_score` + `_axes`
-- Winner = highest `_score`. Cache the winner per goal_type (FPR > 80% → future same-type goals skip scouts, see Recall 4c)
+- Winner = highest `_score`. Cache the winner per goal_type in-session (same-type goals) — no cross-session persistence.
 
-**Rule:** Tier 3+ ALWAYS runs 3 scouts OR loads a cached winner — never a silent default to approach #1.
+**Rule:** Tier 3+ ALWAYS runs 3 scouts OR uses an in-session cached winner — never a silent default to approach #1.
 
 ---
 
@@ -398,7 +392,7 @@ After each major wave, spawn ONE fresh agent to inspect the complete result: fix
 
 ### 0.7e — Cost Levers & Active Guardrails
 - Critics can run on a cheaper model (config `delegation`/`auxiliary`) for TEXT tasks — visual criticism needs the strong model (Phase 3a-quinques cost rule applies).
-- ALL standard guardrails stay active: config-driven timeout + degradation (3d/3j-bis), escalation ladder (3j), security shield (3a), git policy (3g), context protection (3d), self-learning guardrails (4e), PR readiness (3g-bis).
+- ALL standard guardrails stay active: config-driven timeout + degradation (3d/3j-bis), escalation ladder (3j), security shield (3a), git policy (3g), context protection (3d), PR readiness (3g-bis).
 - Round check-ins supersede max_iterations ONLY inside Swarmloop Mode; the standard loop is unchanged.
 
 ---
@@ -935,125 +929,15 @@ Post-assembly: read ALL files for cross-module inconsistencies (signatures, nami
 **Resolution:** fail → create fix tasks, retry once. Still failing → include in final report.
 
 ---
-## Phase 4 — Self-Learning Loop
-### 4a — Pattern Capture (Gated — SkillOpt principle)
 
-After every execution, patterns follow a **gated capture** flow inspired by microsoft/SkillOpt:
+<!-- removed in v0.18.0: Phase 4 Self-Learning Loop (pattern capture, recall, calibration, dynamic knowledge, skill self-improvement). Cost > measured benefit; pattern store deleted. See git history for the removed content. -->
 
-```
-PATTERN CAPTURE FLOW:
-1. Candidate generated: task completed → extract pattern (goal_type, decomposition, FPR, quality)
-2. REJECTED CHECK: query rejected_patterns table for same goal_type/context
-   └─ If match found → log "pattern already rejected for this context, see rejected_patterns"
-   └─ Skip to Level 1 memory entry only (no cache promotion)
-3. HELD-OUT VALIDATION (gate):
-   └─ Select 3-5 tasks from same category that were NEVER used during pattern generation
-   └─ Run candidate pattern on held-out tasks
-   └─ Compare: candidate_score vs baseline_score (no pattern)
-   └─ If candidate_score > baseline_score → ACCEPT → promote to stable cache
-   └─ If candidate_score ≤ baseline_score → REJECT → log in rejected_patterns
-4. STABLE/CANDIDATE SPLIT:
-   └─ stable: patterns that passed the gate (in pattern_cache.json)
-   └─ candidate: patterns under validation (in pattern_candidates.json)
-   └─ Only stable patterns are consulted during Recall (Phase 4c)
-```
-
-**Persistence levels (gated):**
-
-| Level | Where | Gate? | When |
-|-------|-------|-------|------|
-| 1. Memory Entry | Hermes memory store | ❌ Always (max 200 chars) | Last batch of session |
-| 2. Pattern Cache (stable) | `skill_dir/pattern_cache.json` | ✅ Must pass held-out gate | FPR > 70% AND gate passed |
-| 3. Dedicated Skill | `skill_manage(action="create")` | ✅ Must pass held-out gate | 3+ occurrences AND gate passed |
-
-**Level 1 format:** `ES[goal_type|T{tier}] FPR={rate} dec={pattern} q={quality} iter={N} L: {lessons}`
-**Level 2 consult:** at Phase 1 start, if goal_type matches cached pattern with FPR > 80% → use as template (saves ~2000 tokens).
-**Level 3 trigger:** if same goal_type appears 3+ times with FPR > 75% → create skill.
-
-### 4b — Adaptive Calibration
-```python
-def calibrate(history):
-if len(history) < 3: return defaults()
-avg = mean(h.first_pass_rate for h in history[-3:])
-if avg < 0.6: return {"granularity": "fine", "threshold": threshold - 0.5}
-if avg > 0.95: return {"granularity": "coarse", "subagents": subagents * 0.7}
-return {"granularity": "balanced"}
-```
-### 4c — Token-Efficient Recall (pre-loop sequence) — MANDATORY
-
-**CRITICAL:** Recall is NOT optional. Skipping it is the #1 reason FPR degrades across sessions.
-
-```
-RECALL SEQUENCE (~1000 tokens):
-1. Memory injection: ES[...] entries in context → match goal_type? → MUST use as template
-2. Pattern cache (STABLE ONLY): read_file(skill_dir/pattern_cache.json) → FPR > 70%? → MUST use as template
-   ⚠️ CRITICAL: pattern_cache.json MUST be saved to SKILL DIRECTORY, not ~/.hermes/ (sessions are isolated)
-   ⚠️ ONLY stable patterns (passed held-out gate) are consulted — candidates are NOT used
-3. REJECTED CHECK: read_file(skill_dir/rejected_patterns.json) → match goal_type/context?
-   └─ If match → log "pattern already rejected for this context" → do NOT regenerate same pattern
-   └─ Use rejection reason as negative feedback in decomposition
-4. Skill list: pattern-{goal_type} exists? → load with skill_view
-5. Dynamic Knowledge: read local-patterns.md + dynamic-patterns.md → inject as extra_criteria
-6. Calibration: 3+ history entries? → calibrate BEFORE decomposing
-7. FPR enforcement: FPR < 60% → finer granularity | FPR > 90% → coarser | never decompose from zero
-```
-
-**Enforcement:** pattern found but ignored → -5 penalty on final report. Token savings: 60-75%.
-### 4d — Self-Learning Feedback Loop (cross-session)
-
-**Cycle:** RECALL (read cache + memory) → EXECUTE (calibrated params) → CAPTURE (Level 1+2) → CALIBRATE (update params). After 3+ sessions with FPR > 75% → create skill (Level 3).
-**Measurable:** FPR MUST increase over 5 sessions. If not → re-evaluate lesson format.
-### 4e — Self-Learning Guardrails (CRITICAL — 10 guardrails, non-optional)
-
-| # | Guardrail | Rule |
-|:--|:----------|:-----|
-| 1 | **Memory Budget Cap** | Max 10 ES[...] entries. If >8, replace oldest/lowest FPR. Never add — replace. |
-| 2 | **Lesson Validation** | Only save evidence-based lessons (failed test → fix). Skip anecdotes, opinions, self-referential claims. Anti-circularity test: "If this lesson were wrong, how would I know?" |
-| 3 | **Skill Mutation Protection** | Pitfalls/references/examples: auto-patch allowed. Philosophy/Tier/Quality/Guardrails/Phases: human confirmation REQUIRED. Max 1 patch/session. |
-| 4 | **Skill Proliferation Cap** | Max 5 pattern-* skills total. Consolidate if >70% similar. Max 1 created/session. Archive if unused 30 days. |
-| 5 | **Pattern Cache Cleanup** | Cleanup every 10 batches: keep ≤20 entries. If >50: EMERGENCY keep only 10 recent with FPR>70%. Delete goal_types with 3+ entries FPR<60%. |
-| 6 | **Project Isolation** | Architecture/structure lessons = PROJECT-LOCAL (./.hermes/local-patterns.md). Pure technology (API/framework) = GLOBAL (~/.hermes/references/dynamic-patterns.md). When in doubt → LOCAL. |
-| 7 | **Human Checkpoint** | skill_manage create/delete/edit → user confirmation. Patch pitfalls/references → notify after. Dynamic knowledge files ([Auto]) — autonomous. |
-| 8 | **Session Memory Flush Cap** | Max 3 memory entries/session, 1 skill patch/session, 1 pattern_cache update (last batch only). Overflow → save top-N by impact. |
-| 9 | **Drift Detection** | Every 5 sessions of same goal_type: compare FPR. If dropped >10% → stop saving, alert user, propose reset. |
-| 10 | **Transparency Log** | Final report MUST list: entries saved/replaced, cache updated, skills patched/created, lessons validated/rejected, guardrails activated. |
-
-**Self-learning is autonomous in DETECT (what to learn) but collaborative in ACT (structural changes need human consent).**
-### 4f — Dynamic Knowledge Expansion (post 3+ retry) — Local/Global Split
-
-**Trigger:** 3+ retries to pass quality gate → knowledge worth capturing.
-```
-1. Extract: What failed? Why? What solution worked?
-2. Classify SCOPE:
-   ├─ GLOBAL (pure tech: APIs, frameworks, languages) → ~/.hermes/references/dynamic-patterns.md
-   └─ LOCAL (project architecture, conventions, wrappers) → ./.hermes/local-patterns.md
-3. Auto-load: LOCAL always, GLOBAL filtered by technologies in goal
-4. DEFAULT: when in doubt → LOCAL (harmless noise vs damaging context pollution)
-```
-### 4g — Lesson Hierarchy
-
-| Priority | Type | Rule |
-|:--------:|:-----|:-----|
-| P0 | Structural | Always save (changes future decomposition) |
-| P1 | Task-specific | Save if recurring (add extra quality criteria) |
-| P2 | Context-specific | Save if project recurring (pitfall to check) |
-| P3 | One-off | **NEVER save** — log in STATE only |
-
-**Rule:** less but better. Max 2-3 lessons per batch.
-### 4h — Skill Self-Improvement
-- If a decomposition pattern succeeds 3+ times → save as reusable pattern
-- If a pitfall is discovered → add to pitfalls section (general, not project-specific)
-- Each self-improvement action bumps the skill version (following the v0.7.x scheme):
-- Patch fix (v0.7.1) → new pitfall or minor calibration
-- Minor improvement (v0.8.0) → new pattern or phase
-- Major rewrite (v1.0.0) → breakthrough architecture change
 ---
 ## Phase 5 — Final Report
 
 ```
 ## ✅ [Goal]
 ### Loop Efficiency: subagents N/M | FPR XX% | quality X.Y/10 | duration X min
-### Self-Learning: pattern saved, lessons, calibration, guardrails activated
 ### Quality: ✅ Passed X | ⚠️ Gaps Y | ❌ Escalated Z
 ### Self-Feedback: XX/100 | notes: [strengths + improvements]
 ```
@@ -1073,15 +957,14 @@ RECALL SEQUENCE (~1000 tokens):
 
 **Per Task:** no stubs/TODO, edge cases, error handling, conventions, security shield, physical validation.
 **Per Batch:** all delivered, files exist, no conflicts, no orphans, context OK, git checkpoint.
-**Per System:** FPR saved, quality documented, pattern captured, calibration updated, goal achieved (not timeout).
+**Per System:** FPR tracked, quality documented, goal achieved (not timeout).
 ---
 ## Phase 7 — Self-Execution Infrastructure
 
-Supporting files in the skill directory: `scripts/init-state.sh` (bootloader), `references/pattern-store.sql` (SQLite schema), `scripts/install.sh` (installer), `scripts/session_manager.py` (state tracking), `scripts/pattern_store.py` (Phase 4a gated capture), `scripts/e2e_test.py` (full E2E suite — exact count printed at every run).
+Supporting files in the skill directory: `scripts/init-state.sh` (bootloader), `scripts/install.sh` (installer), `scripts/session_manager.py` (state tracking), `scripts/e2e_test.py` (full E2E suite — exact count printed at every run).
 
 | MCP Server | Phase | Usage |
 |-----------|-------|-------|
-| **sqlite** | Phase 4, 7a | Pattern persistence, calibration |
 | **graphify** | Phase 0b | Codebase context, dependency analysis |
 | **sequential-thinking** | Phase 1, 3f | Complex reasoning, Actor-Critic |
 | **github** | Phase 7e | GitHub sync, code review |
@@ -1133,18 +1016,16 @@ Last checkpoint: turn {turn}
 | `scripts/install.sh` | Auto-installer with --dry-run (preview), backup preservation, idempotent re-install |
 | `scripts/e2e_test.py` | E2E checks across ALL phases, tiers 1-4 (exact count printed at run time) |
 | `scripts/session_manager.py` | Session state tracking, checkpoint, quality trend, interrupt recovery |
-| `scripts/pattern_store.py` | Gated pattern capture MATERIALIZED: record-execution / capture-candidate / promote / reject / recall / cleanup (JSON cache + SQLite) |
-| `scripts/pattern_cache.json` | Stable pattern cache (bootstrap by init-state.sh, updated only via pattern_store.py promote) |
 | `scripts/file_validation.py` | Phase 3b validator: TODO/FIXME/NotImplementedError, empty file, syntax (AST Python), PARTIAL markers. `--strict` for status=pass, `--allow-partial` for status=partial |
 | `scripts/test_file_validation.py` | Smoke tests for file_validation.py (8 checks) |
 | `scripts/security_shield.py` | Phase 3a enforcement: hardcoded secrets, SQL injection, deprecated APIs (context-aware pydantic), dangerous shell via `--check-command`. Smoke: `test_security_shield.py` (10) |
 | `scripts/context_guard.py` | Phase 3d can_dispatch(): `{can_dispatch, confidence, diagnostics, suggested_wave_size}`, hard rule budget×0.8, wave 20. Smoke: `test_context_guard.py` (7) |
-| `scripts/critic_gate.py` | Tier 3+ critic gate: fresh-context critic, PASS = (critic_score ≥ threshold) AND scripts ok (planned — Blocco C) |
+| `critic_gate.py` (planned, Blocco C) | Tier 3+ critic gate: fresh-context critic, PASS = (critic_score ≥ threshold) AND scripts ok |
 
 Run validation: `python scripts/e2e_test.py`
 
 ---
-## Pitfalls (condensed — 31 rules)
+## Pitfalls (condensed — 28 rules)
 
 | # | Pitfall | Fix |
 |:--|:--------|:----|
@@ -1152,30 +1033,27 @@ Run validation: `python scripts/e2e_test.py`
 | 2 | Streaming gather forgotten | Retry on first below-threshold result |
 | 3 | Non-adaptive decomposition | Scale with available subagent slots |
 | 4 | Scale patterns unused | Use multi-variant for 100 subagents |
-| 5 | Self-learning skipped | Save patterns, calibrate, improve |
-| 6 | Quality threshold ignored | Calibrate, don't ignore |
-| 7 | Escalation hidden | Follow escalation ladder |
-| 8 | Same decomposition for all goals | Match scale pattern to goal type |
-| 9 | Idle during dispatch | Prepare retry templates while waiting |
-| 10 | No physical file verification | Verify with read_file/stat |
-| 11 | State not updated per result | Update after EVERY result |
-| 12 | Overfitting self-learning | Need 3+ confirmations |
-| 13 | Tier 4 for Tier 1 tasks | Fast-path exists for a reason |
-| 14 | Context window overflow | Wave dispatch, summary compression |
-| 15 | Security in subagent output | Always run Phase 3a Security Shield |
-| 16 | No guardrails on self-learning | Phase 4e is NON-OPTIONAL |
-| 17 | Signature mismatch (parallel) | Shared Interface Contracts (Phase 1d) |
-| 18 | Clarification skipped (Tier 3+) | Always ask 5-6 questions first |
-| 19 | Plan skipped (5+ files) | Write plan before dispatch |
-| 20 | Sandbox Racing on shared files | Racing is for isolated bugfixes only |
-| 21 | Skipping Phase 0.6 exploration | Tier 3+ defaults to 1st approach. Always run 3 scouts or load cached winner. |
-| 22 | Ignoring auto-update notification | "v{NEW} available" means real improvements. Run git pull + /reload-skills. |
-| 23 | Skipping approval checkpoint | Never dispatch Tier 4/greenfield/new-domain/money tasks without plan_approved=True. Lower tiers auto-approve when user said "fai tu". |
-| 24 | Ad-hoc plan format (no templates) | Use SPEC/ROADMAP/TASKS templates from Phase 0.5b for Tier 4/greenfield. Structured docs prevent subagent conflicts and enable cross-session recall. |
-| 25 | Declaring done without PR readiness | Run Phase 3g-bis gates ONLY in PR-based repos: local review, manual tests, hard gates, PR evidence. Direct-to-main repos skip to commit+push. |
-| 26 | Installer overwrites without backup | Use --dry-run first, back up existing files, ensure idempotent re-install. Phase 7 installer must be safe to run repeatedly. |
-| 27 | Dangerous shell command not blocked | Phase 3a check 5: scan all terminal() calls against BLOCKED/WARN/ALLOWED lists before execution. Hermes approval system remains the final enforcement layer. |
-| 28 | Verbose output flooding context | Filter with native pipes first (grep/tail/head, Phase 3d-bis). Use RTK only if installed (`which rtk`). Rerun raw if the filter hides needed detail. |
-| 29 | Inventing $ cost estimates | State tokens only (caps from Phase 3d). Never quote a model price the agent does not know. Use $ caps only from user-supplied budgets. |
-| 30 | Swarmloop Mode without Pre-Flight confirmation | Phase 0.7a is a HARD GATE — never dispatch before the token estimate is confirmed by the user. |
-| 31 | Critic grades a builder summary | Critic MUST inspect the real artifact (files, tests, renders) with fresh context — never the builder's history or summary. |
+| 5 | Quality threshold ignored | Calibrate, don't ignore |
+| 6 | Escalation hidden | Follow escalation ladder |
+| 7 | Same decomposition for all goals | Match scale pattern to goal type |
+| 8 | Idle during dispatch | Prepare retry templates while waiting |
+| 9 | No physical file verification | Verify with read_file/stat |
+| 10 | State not updated per result | Update after EVERY result |
+| 11 | Tier 4 for Tier 1 tasks | Fast-path exists for a reason |
+| 12 | Context window overflow | Wave dispatch, summary compression |
+| 13 | Security in subagent output | Always run Phase 3a Security Shield |
+| 14 | Signature mismatch (parallel) | Shared Interface Contracts (Phase 1d) |
+| 15 | Clarification skipped (Tier 3+) | Always ask 5-6 questions first |
+| 16 | Plan skipped (5+ files) | Write plan before dispatch |
+| 17 | Sandbox Racing on shared files | Racing is for isolated bugfixes only |
+| 18 | Skipping Phase 0.6 exploration | Tier 3+ defaults to 1st approach. Always run 3 scouts or use the in-session cached winner. |
+| 19 | Ignoring auto-update notification | "v{NEW} available" means real improvements. Run git pull + /reload-skills. |
+| 20 | Skipping approval checkpoint | Never dispatch Tier 4/greenfield/new-domain/money tasks without plan_approved=True. Lower tiers auto-approve when user said "fai tu". |
+| 21 | Ad-hoc plan format (no templates) | Use SPEC/ROADMAP/TASKS templates from Phase 0.5b for Tier 4/greenfield. Structured docs prevent subagent conflicts and keep context readable. |
+| 22 | Declaring done without PR readiness | Run Phase 3g-bis gates ONLY in PR-based repos: local review, manual tests, hard gates, PR evidence. Direct-to-main repos skip to commit+push. |
+| 23 | Installer overwrites without backup | Use --dry-run first, back up existing files, ensure idempotent re-install. Phase 7 installer must be safe to run repeatedly. |
+| 24 | Dangerous shell command not blocked | Phase 3a check 5: scan all terminal() calls against BLOCKED/WARN/ALLOWED lists before execution. Hermes approval system remains the final enforcement layer. |
+| 25 | Verbose output flooding context | Filter with native pipes first (grep/tail/head, Phase 3d-bis). Use RTK only if installed (`which rtk`). Rerun raw if the filter hides needed detail. |
+| 26 | Inventing $ cost estimates | State tokens only (caps from Phase 3d). Never quote a model price the agent does not know. Use $ caps only from user-supplied budgets. |
+| 27 | Swarmloop Mode without Pre-Flight confirmation | Phase 0.7a is a HARD GATE — never dispatch before the token estimate is confirmed by the user. |
+| 28 | Critic grades a builder summary | Critic MUST inspect the real artifact (files, tests, renders) with fresh context — never the builder's history or summary. |

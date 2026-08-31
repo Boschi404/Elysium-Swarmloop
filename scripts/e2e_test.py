@@ -8,7 +8,7 @@ plus the SKILL.md contract for v0.13+ phases (Scenario 5).
 Each scenario tests: 4-Band Filter, Tier Detection, State Init,
 Decomposition Granularity, Streaming Gather, Convergence, Report Generation,
 Quality Scoring Rubric, Security Shield, Context Protection,
-Git Commit+Push Policy, and Self-Learning Pattern Capture.
+Git Commit+Push Policy, and Architecture Handoff.
 Scenario 5 verifies the SKILL.md contract: case-insensitive triggers,
 smart approval checkpoints, token-based cost gate, conditional RTK/PR/docs,
 allowlist enforcement layer, and the lean-skill contract (no version history).
@@ -173,7 +173,6 @@ class State:
     in_flight: list = field(default_factory=list)
     first_pass_rate: float = 0.0
     avg_quality: float = 0.0
-    self_lessons: list = field(default_factory=list)
     start_time: float = 0.0
     fast_path: bool = False
     converged: bool = False
@@ -196,7 +195,6 @@ def init_state(goal: str, tier: int) -> State:
         in_flight=[],
         first_pass_rate=0.0,
         avg_quality=0.0,
-        self_lessons=[],
         start_time=time.time(),
         fast_path=fp,
         converged=False,
@@ -208,7 +206,7 @@ def validate_state(state: State) -> list:
     issues = []
     required = ['goal', 'tier', 'subagents', 'threshold', 'iteration',
                 'max_iterations', 'completed', 'failed', 'in_flight',
-                'first_pass_rate', 'avg_quality', 'self_lessons',
+                'first_pass_rate', 'avg_quality',
                 'start_time', 'fast_path', 'converged']
     for field in required:
         if not hasattr(state, field):
@@ -485,12 +483,6 @@ def generate_report(state: State, duration_secs: float) -> str:
     else:
         lines.append("  ⚡ Full loop executed")
     lines.append("")
-    lines.append("  Self-Learning")
-    if state.self_lessons:
-        for lesson in state.self_lessons:
-            lines.append(f"    • {lesson}")
-    else:
-        lines.append("    (no lessons captured)")
     return "\n".join(lines)
 
 
@@ -646,85 +638,6 @@ def git_commit_push_policy(tier: int, fast_path: bool, converged: bool) -> str:
     elif tier == 4:
         return "feature_branch_pr_review_merge"
     return "branch_commit"
-
-
-# ── Self-Learning Pattern Capture ──────────────────────────────────────────
-
-@dataclass
-class ExecutionPattern:
-    goal_type: str = ""
-    tier: int = 1
-    total_tasks: int = 0
-    first_pass_rate: float = 0.0
-    avg_quality: float = 0.0
-    convergence_iterations: int = 0
-    decomposition_pattern: str = ""
-    lessons: list = field(default_factory=list)
-    timestamp: float = 0.0
-
-
-def capture_pattern(state: State, duration_secs: float) -> ExecutionPattern:
-    """Capture a self-learning pattern from the completed execution."""
-    # Detect goal type from the goal string
-    goal_lower = state.goal.lower()
-    goal_type = "general"
-    if any(kw in goal_lower for kw in ['api', 'endpoint', 'rest', 'graphql']):
-        goal_type = "api_creation"
-    elif any(kw in goal_lower for kw in ['auth', 'login', 'oauth', 'permission', 'role']):
-        goal_type = "auth_system"
-    elif any(kw in goal_lower for kw in ['test', 'coverage', 'unittest']):
-        goal_type = "testing"
-    elif any(kw in goal_lower for kw in ['refactor', 'migrate', 'upgrade']):
-        goal_type = "refactoring"
-    elif any(kw in goal_lower for kw in ['greenfield', 'from scratch', 'new project', 'platform']):
-        goal_type = "greenfield"
-    elif any(kw in goal_lower for kw in ['fix', 'bug', 'typo', 'quick', 'rename', 'bump']):
-        goal_type = "quick_fix"
-
-    # Determine decomposition pattern
-    decomp_pattern = {
-        1: "atomic_task",
-        2: "per_function",
-        3: "per_component",
-        4: "per_layer_with_orchestration",
-    }.get(state.tier, "per_function")
-
-    # Generate lessons
-    lessons = []
-    if state.first_pass_rate < 0.6:
-        lessons.append("Low first-pass rate — consider finer decomposition for this goal type")
-    if state.first_pass_rate > 0.95:
-        lessons.append("High first-pass rate — may benefit from coarser granularity")
-    if len(state.failed) > 0:
-        lessons.append(f"Task type '{goal_type}' had {len(state.failed)} failures — needs better criteria")
-    if state.tier == 1:
-        lessons.append("Fast-path used — no self-learning needed for trivial tasks")
-    if not lessons:
-        lessons.append(f"Standard execution for {goal_type} — no anomalous patterns")
-
-    return ExecutionPattern(
-        goal_type=goal_type,
-        tier=state.tier,
-        total_tasks=len(state.completed) + len(state.failed),
-        first_pass_rate=state.first_pass_rate,
-        avg_quality=state.avg_quality,
-        convergence_iterations=state.iteration,
-        decomposition_pattern=decomp_pattern,
-        lessons=lessons,
-        timestamp=time.time(),
-    )
-
-
-def validate_pattern_store_schema() -> list:
-    """Validate that the pattern SQL schema matches expected tables."""
-    expected_tables = ['executions', 'decomposition_patterns', 'pitfalls', 'calibrations']
-    expected_exec_cols = ['id', 'goal', 'goal_type', 'tier', 'total_tasks',
-                          'first_pass_rate', 'avg_quality', 'convergence_iterations',
-                          'decomposition_pattern', 'start_time', 'duration_seconds',
-                          'lessons', 'created_at']
-    issues = []
-    # Schema definition is embedded; we validate by checking the SQL file content
-    return issues  # Actual schema validation done in test via file read
 
 
 # ═════════════════════════════════════════════════════════════════════════════
@@ -940,13 +853,6 @@ def test_tier1_fast_path() -> None:
     check(f"[Git] Git policy is 'direct_commit' for tier 1 (got '{git_strat}')",
           git_strat == "direct_commit")
 
-    # 13. Self-learning
-    pattern = capture_pattern(state2, 0.5)
-    check(f"[Learn] Self-learning pattern captured for tier 1",
-          pattern.goal_type == "quick_fix")
-    check(f"[Learn] Decomposition pattern is 'atomic_task' for tier 1 (got '{pattern.decomposition_pattern}')",
-          pattern.decomposition_pattern == "atomic_task")
-
     print(f"\n  {CYAN}→ Scenario 1 complete: fast-path verified for all 3 goals{NC}")
 
 
@@ -1071,16 +977,6 @@ def test_tier2_standard() -> None:
     check(f"[Git] Git policy blocks commit when not converged (got '{git_strat_nc}')",
           git_strat_nc == "no_commit_loop_not_done")
 
-    # 12. Self-learning pattern capture
-    pattern = capture_pattern(state_s, 2.3)
-    check(f"[Learn] Self-learning captures goal_type='api_creation' (got '{pattern.goal_type}')",
-          pattern.goal_type == "api_creation")
-    check(f"[Learn] Pattern records first_pass_rate={state_s.first_pass_rate:.2f}",
-          pattern.first_pass_rate == state_s.first_pass_rate)
-    check(f"[Learn] Decomposition pattern is 'per_function' for tier 2 (got '{pattern.decomposition_pattern}')",
-          pattern.decomposition_pattern == "per_function")
-    check(f"[Learn] Pattern has at least 1 lesson",
-          len(pattern.lessons) >= 1)
 
     print(f"\n  {CYAN}→ Scenario 2 complete: standard feature loop verified{NC}")
 
@@ -1222,14 +1118,6 @@ def test_tier3_complex() -> None:
     check(f"[Git] Git policy for tier 3 is 'branch_pr_merge' (got '{git_strat}')",
           git_strat == "branch_pr_merge")
 
-    # 12. Self-learning pattern capture
-    pattern = capture_pattern(state_s, 15.7)
-    check(f"[Learn] Self-learning identifies goal_type='auth_system' (got '{pattern.goal_type}')",
-          pattern.goal_type == "auth_system")
-    check(f"[Learn] Decomposition pattern is 'per_component' for tier 3 (got '{pattern.decomposition_pattern}')",
-          pattern.decomposition_pattern == "per_component")
-    check(f"[Learn] Pattern stores convergence iterations ({pattern.convergence_iterations})",
-          pattern.convergence_iterations > 0)
 
     print(f"\n  {CYAN}→ Scenario 3 complete: complex auth system loop verified{NC}")
 
@@ -1393,18 +1281,6 @@ def test_tier4_epic() -> None:
     check(f"[Git] Git policy blocks commit when not converged (got '{git_strat_nc}')",
           git_strat_nc == "no_commit_loop_not_done")
 
-    # 12. Self-learning pattern capture
-    pattern = capture_pattern(state_s, 180.0)
-    check(f"[Learn] Self-learning identifies goal_type='greenfield' (got '{pattern.goal_type}')",
-          pattern.goal_type == "greenfield")
-    check(f"[Learn] Decomposition pattern is 'per_layer_with_orchestration' for tier 4 (got '{pattern.decomposition_pattern}')",
-          pattern.decomposition_pattern == "per_layer_with_orchestration")
-    check(f"[Learn] Pattern stores total task count ({pattern.total_tasks})",
-          pattern.total_tasks > 0)
-    check(f"[Learn] Pattern records quality ({pattern.avg_quality:.1f})",
-          pattern.avg_quality > 0)
-    check(f"[Learn] Pattern has at least 1 lesson for greenfield",
-          len(pattern.lessons) >= 1)
 
     print(f"\n  {CYAN}→ Scenario 4 complete: greenfield depth-2 loop verified{NC}")
 
@@ -1489,8 +1365,8 @@ def test_phase06_exploration() -> None:
     check(f"[Handoff] Architecture description not empty",
           len(winner.architecture) > 0)
 
-    # 0.6f — Pattern capture
-    subsection("0.6f — Pattern Capture for Self-Learning")
+    # 0.6f — Architecture handoff
+    subsection("0.6f — Architecture Handoff")
 
     goal_type = "api_creation" if "api" in handoff['goal'].lower() else "unknown"
     check(f"[Pattern] Goal type: '{goal_type}'", goal_type == "api_creation")
@@ -1541,34 +1417,9 @@ def test_phase06_exploration() -> None:
 # ═════════════════════════════════════════════════════════════════════════════
 
 def test_cross_cutting() -> None:
-    """Test cross-cutting concerns: schema, convergence edge cases, fallbacks."""
+    """Test cross-cutting concerns: convergence edge cases, fallbacks."""
 
     section("CROSS-CUTTING: Schema Validation & Edge Cases")
-
-    # ── Pattern store schema ──
-    subsection("Pattern Store Schema")
-
-    schema_path = os.path.join(os.path.dirname(__file__), '..', 'references', 'pattern-store.sql')
-    schema_path = os.path.normpath(schema_path)
-    if os.path.exists(schema_path):
-        with open(schema_path, 'r') as f:
-            schema_content = f.read()
-
-        expected_tables = ['executions', 'decomposition_patterns', 'pitfalls', 'calibrations']
-        for tbl in expected_tables:
-            check(f"[Schema] Pattern store defines table '{tbl}'",
-                  f'CREATE TABLE IF NOT EXISTS {tbl}' in schema_content or
-                  f'CREATE TABLE {tbl}' in schema_content)
-
-        check(f"[Schema] Pattern store has execution tracking columns",
-              'first_pass_rate' in schema_content and 'avg_quality' in schema_content)
-        check(f"[Schema] Pattern store supports calibration tracking",
-              'calibrations' in schema_content)
-        check(f"[Schema] Pattern store foreign keys between calibrations and executions",
-              'FOREIGN KEY' in schema_content)
-    else:
-        check(f"[Schema] Pattern store SQL file found at {schema_path}",
-              False)
 
     # ── Convergence edge cases ──
     subsection("Convergence Edge Cases")

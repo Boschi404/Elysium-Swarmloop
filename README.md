@@ -8,13 +8,13 @@
 </p>
 
 <p align="center">
-  <img src="https://img.shields.io/badge/version-0.16.0-34d399?style=flat-square&labelColor=0f172a">
+  <img src="https://img.shields.io/badge/version-0.18.0-34d399?style=flat-square&labelColor=0f172a">
   <img src="https://img.shields.io/badge/license-MIT-22d3ee?style=flat-square&labelColor=0f172a">
   <img src="https://img.shields.io/badge/subagents-100-a78bfa?style=flat-square&labelColor=0f172a">
   <img src="https://img.shields.io/badge/depth-2-fbbf24?style=flat-square&labelColor=0f172a">
 </p>
 
-> ⚠️ **Stato di verifica (v0.16.0):** Swarmloop Mode (Phase 0.7) con trigger case-insensitive, checkpoint di approvazione smart opt-in, cost gate token-based (niente prezzi inventati), sezioni PR/RTK/docs condizionali, skill lean senza storico versioni, Phase 0.6 exploration documentata e allineata all'e2e, installer safe (whitelist copy + --dry-run reale, niente reset --hard), pattern store materializzato in `scripts/pattern_store.py`, timeout single-source da config. E2E: 251/251 check passati + 21/21 test funzionali del pattern gate (sandbox isolata). Self-learning resta "non verificato" — vedi `risultati/AUDIT_SCORING_ENGINE.md`.
+> ⚠️ **Stato di verifica (v0.18.0):** Swarmloop Mode (Phase 0.7) con trigger case-insensitive, checkpoint di approvazione smart opt-in, cost gate token-based (niente prezzi inventati), sezioni PR/RTK/docs condizionali, skill lean senza storico versioni, Phase 0.6 exploration documentata e allineata all'e2e, installer safe (whitelist copy + --dry-run reale, niente reset --hard), timeout single-source da config. E2E: 231/231 check passati. **Self-Learning Loop (Phase 4) rimosso in v0.18.0** — costo > beneficio misurato, rischio saturazione contesto; pattern store (SQLite) eliminato.
 
 ## What is Elysium Swarmloop?
 
@@ -23,7 +23,6 @@ A Hermes Agent skill that transforms every prompt into an autonomous agentic wor
 - **Massive parallelism** — up to 100 subagents per batch
 - **Hierarchical orchestration** — depth-2: orchestrators spawn leaf workers
 - **Streaming quality gate** — retry failures immediately, don't wait for batch completion
-- **Self-learning** — captures patterns in SQLite, calibrates granularity, improves iteration after iteration *(mechanism implemented; efficacy not yet independently verified — see audit)*
 - **Zero human intervention** — the loop keeps going until the goal is achieved
 - **Tier-based execution** — Tier 1 (fast-path) to Tier 4 (full epic), auto-detected
 - **Swarmloop Mode** — gauntlet-style builder/critic loop against an external reference bar, with token-based cost gates (v0.15.0)
@@ -40,10 +39,9 @@ A Hermes Agent skill that transforms every prompt into an autonomous agentic wor
 ├── scripts/
 │   ├── init-state.sh           # Bootloader — initializes STATE
 │   ├── install.sh              # Auto-installer (bash install.sh)
-│   ├── e2e_test.py             # E2E test suite (224 checks, 4 scenarios)
+│   ├── e2e_test.py             # E2E test suite (231 checks, 4 scenarios)
 │   └── session_manager.py      # Session state tracking, checkpoint, recovery
 └── references/
-    ├── pattern-store.sql       # SQLite schema for pattern persistence
     └── user_preferences.yaml   # User preferences template for fine-tuning
 ```
 
@@ -57,7 +55,6 @@ while goal_not_achieved:
     decompose()      # break remaining work into tasks
     scatter()        # dispatch all in parallel
     stream()         # process each result as it arrives
-    learn()          # save patterns, calibrate, improve
 ```
 
 ## Quick Start
@@ -155,10 +152,10 @@ A dedicated prerequisites section documents every config parameter the skill nee
 A post-assembly integrity scan that checks all outputs for cross-file consistency, interface compatibility, missing imports, and silent quality degradation after the assembly task. Runs once after all subagent output is integrated.
 
 ### E2E Test Script
-`scripts/e2e_test.py` — a comprehensive test suite with 224 automated checks across 4 scenarios:
+`scripts/e2e_test.py` — a comprehensive test suite with 231 automated checks across 4 scenarios:
 - **Scenario 1:** Tier auto-detection accuracy
 - **Scenario 2:** Streaming quality gate behaviour
-- **Scenario 3:** Self-learning pattern capture
+- **Scenario 3:** Architecture handoff from Phase 0.6
 - **Scenario 4:** Full loop convergence with parallel sandbox racing
 
 Run with:

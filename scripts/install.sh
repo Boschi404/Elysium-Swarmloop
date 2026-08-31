@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # =============================================================================
-# install.sh — Elysium Swarmloop Auto-Installer  v0.16.0
+# install.sh — Elysium Swarmloop Auto-Installer  v0.18.0
 # =============================================================================
 # Uso:
 #   bash install.sh              # installa
@@ -13,8 +13,7 @@
 #      SKILL.md, README.md, SETUP.md, scripts/*, references/*
 #      -> MAI workspaces/, risultati/, benchmark, node_modules
 #   3. Backup dei file esistenti prima di sovrascrivere (idempotente)
-#   4. Inizializza il pattern store SQLite (tabelle IF NOT EXISTS)
-#   5. Verifica jq + testa il bootloader
+#   4. Verifica jq + testa il bootloader
 #
 # Compatibilità: Windows (git-bash), Linux, macOS.
 # Percorsi: rispetta $HERMES_HOME se impostato; altrimenti usa il layout
@@ -24,7 +23,7 @@
 # =============================================================================
 set -euo pipefail
 
-VERSION="0.16.0"
+VERSION="0.18.0"
 REPO_URL="https://github.com/Boschi404/Elysium-Swarmloop.git"
 DRY_RUN=false
 [[ "${1:-}" == "--dry-run" ]] && DRY_RUN=true
@@ -91,7 +90,7 @@ info "Skills dir rilevata: $SKILLS_ROOT"
 # =============================================================================
 # STEP 1 — CLONA REPO
 # =============================================================================
-title "Step 1/6 — Scarica la skill"
+title "Step 1/5 — Scarica la skill"
 if [[ "$DRY_RUN" == true && -d "$TMP_DIR/SKILL.md" ]]; then :; fi
 if git clone --depth=1 "$REPO_URL" "$TMP_DIR" 2>/dev/null; then
   pass "Repo clonato in $TMP_DIR"
@@ -104,7 +103,7 @@ fi
 # =============================================================================
 # STEP 2 — COPIA WHITELIST IN HERMES (+ backup)
 # =============================================================================
-title "Step 2/6 — Copia file runtime (whitelist)"
+title "Step 2/5 — Copia file runtime (whitelist)"
 WHITELIST_TOP="SKILL.md README.md SETUP.md"
 copy_one() {
   local src="$1" dst="$2"
@@ -137,7 +136,7 @@ info "Aggiornamenti: ri-esegui questo installer (idempotente, con backup)."
 # =============================================================================
 # STEP 3 — VERIFICA CONFIG.YAML (via hermes config get)
 # =============================================================================
-title "Step 3/6 — Verifica config Hermes"
+title "Step 3/5 — Verifica config Hermes"
 check_cfg() {
   local key="$1" expected="$2" got=""
   if command -v hermes >/dev/null 2>&1; then
@@ -159,44 +158,9 @@ check_cfg orchestrator_enabled true
 check_cfg child_timeout_seconds 600
 
 # =============================================================================
-# STEP 4 — PATTERN STORE SQLITE
+# STEP 4 — JQ (opzionale, per bootloader bash)
 # =============================================================================
-title "Step 4/6 — Pattern store SQLite"
-SQL_PATH="$TMP_DIR/references/pattern-store.sql"
-if [[ -f "$SQL_PATH" ]]; then
-  if [[ "$DRY_RUN" == true ]]; then
-    info "[dry-run] eseguorei pattern-store.sql su $HERMES_DB"
-  else
-    RESULT="$(python - "$HERMES_DB" "$SQL_PATH" <<'PYEOF'
-import sqlite3, sys
-db_path, sql_path = sys.argv[1], sys.argv[2]
-try:
-    conn = sqlite3.connect(db_path)
-    with open(sql_path, encoding="utf-8") as f:
-        conn.executescript(f.read())
-    conn.commit()
-    cur = conn.execute(
-        "SELECT COUNT(*) FROM sqlite_master WHERE type='table' AND name IN"
-        " ('executions','decomposition_patterns','pitfalls','calibrations',"
-        "  'rejected_patterns','pattern_candidates')")
-    print("OK:" + str(cur.fetchone()[0]) + "/6")
-except Exception as e:
-    print("ERR:" + str(e))
-PYEOF
-)" || RESULT="ERR:python failed"
-    case "$RESULT" in
-      OK:*) pass "Pattern store tabelle: ${RESULT#OK:} ($HERMES_DB)" ;;
-      *)    warn "Pattern store: ${RESULT#ERR:} (verrà creato al primo avvio)" ;;
-    esac
-  fi
-else
-  warn "pattern-store.sql non trovato nel clone"
-fi
-
-# =============================================================================
-# STEP 5 — JQ (opzionale, per bootloader bash)
-# =============================================================================
-title "Step 5/6 — jq"
+title "Step 4/5 — jq"
 if command -v jq >/dev/null 2>&1; then
   pass "jq trovato: $(jq --version 2>/dev/null || echo '?')"
 else
@@ -206,9 +170,9 @@ else
 fi
 
 # =============================================================================
-# STEP 6 — TEST BOOTLOADER
+# STEP 5 — TEST BOOTLOADER
 # =============================================================================
-title "Step 6/6 — Test bootloader"
+title "Step 5/5 — Test bootloader"
 if command -v jq >/dev/null 2>&1 && [[ "$DRY_RUN" != true ]]; then
   cd "$SKILL_DIR"
   for pair in "Fix typo in config:1" "Build REST API for booking:3" "Build greenfield full-stack platform:4"; do

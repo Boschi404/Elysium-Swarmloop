@@ -83,28 +83,7 @@ jq --version
 
 ---
 
-## Step 4 — Inizializza il Pattern Store (SQLite)
-
-Il pattern store salva le esecuzioni, i pattern di decomposizione, i pitfalls e le calibrazioni.
-
-Via terminale Python (esegui una volta):
-
-```bash
-python -c "
-import sqlite3, os
-hermes_db = os.path.expanduser('~/.hermes/hermes.db')
-pattern_sql = os.path.expanduser('~/AppData/Local/hermes/skills/autonomous-ai-agents/elysium-swarmloop/references/pattern-store.sql')
-conn = sqlite3.connect(hermes_db)
-with open(pattern_sql, 'r') as f:
-    conn.executescript(f.read())
-conn.commit()
-print('Pattern store inizializzato OK')
-"
-```
-
----
-
-## Step 5 — Verifica il Bootloader
+## Step 4 — Verifica il Bootloader
 
 ```bash
 cd ~/AppData/Local/hermes/skills/autonomous-ai-agents/elysium-swarmloop
@@ -124,7 +103,7 @@ bash scripts/init-state.sh --json "Build greenfield full-stack platform"
 
 ---
 
-## Step 6 — Verifica i Nuovi Script (v0.7.0)
+## Step 5 — Verifica i Nuovi Script (v0.7.0)
 
 ```bash
 cd ~/AppData/Local/hermes/skills/autonomous-ai-agents/elysium-swarmloop
@@ -143,7 +122,7 @@ python -c "import yaml; yaml.safe_load(open('references/user_preferences.yaml'))
 
 ---
 
-## Step 7 — Usa la Skill
+## Step 6 — Usa la Skill
 
 Carica la skill in una sessione Hermes:
 
@@ -169,7 +148,6 @@ Poi ogni prompt viene elaborato dal loop autonomo:
 | `jq: command not found` | jq non installato | Step 3 |
 | `max_concurrent_children` non parte | config.yaml non aggiornato | Step 2 |
 | Bootloader dà tier sbagliato | Keyword non riconosciuta | Aggiungi keyword in `detect_tier()` |
-| Pattern store: tabella non trovata | Schema non eseguito | Step 4 |
 | Loop non si attiva | Skill non caricata | `skill_view(name='elysium-swarmloop')` |
 | Subagent non spawna | `orchestrator_enabled: false` | Step 2 |
 | `e2e_test.py` fallisce | Dipendenze mancanti | `pip install pyyaml` |
@@ -185,7 +163,6 @@ Poi ogni prompt viene elaborato dal loop autonomo:
 - [ ] `max_spawn_depth: 2` in config.yaml
 - [ ] `orchestrator_enabled: true` in config.yaml
 - [ ] `jq` installato e funzionante (`jq --version`)
-- [ ] Pattern store inizializzato (4 tabelle in hermes.db)
 - [ ] Bootloader testato (Tier 1/3/4)
 - [ ] Scripts v0.7.0 presenti (`scripts/e2e_test.py`, `scripts/session_manager.py`)
 - [ ] References v0.7.0 presenti (`references/user_preferences.yaml`)
